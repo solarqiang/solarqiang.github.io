@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-cn">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
@@ -17,7 +17,7 @@
 
 <script id="hexo-configurations">
     var NexT = window.NexT || {};
-    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Muse","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":3,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
   <meta name="description" content="背景知识进程与线程类似其他操作系统的相应概念，Android 的进程拥有独立的虚拟内存空间，而线程与同一进程内的其他线程共享内存，只拥有各自的栈空间、程序计数器和寄存器等少量独占资源。当 Android 启动一个之前未运行的应用的组件时，会为其启动一个包含单个主线程”main”的新的 Linux 进程。默认情况下，同一应用的所有组件会在此进程内启动，并且使用同一执行线程。开发者可以人为安排组件在单">
@@ -34,7 +34,7 @@
 <meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/loop.svg">
 <meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/sendMessage.svg">
 <meta property="article:published_time" content="2020-01-18T16:00:00.000Z">
-<meta property="article:modified_time" content="2020-03-19T13:16:50.847Z">
+<meta property="article:modified_time" content="2020-03-19T14:17:15.604Z">
 <meta property="article:author" content="solarqiang">
 <meta property="article:tag" content="Android">
 <meta name="twitter:card" content="summary">
@@ -49,7 +49,7 @@
     sidebar: "",
     isHome : false,
     isPost : true,
-    lang   : 'zh-cn'
+    lang   : 'zh-CN'
   };
 </script>
 
@@ -93,7 +93,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="Toggle navigation bar">
+    <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -113,6 +113,7 @@
 
   <div class="site-nav-right">
     <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
     </div>
   </div>
 </div>
@@ -123,17 +124,52 @@
   <ul id="menu" class="menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>Home</a>
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>Archives</a>
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
 
   </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
   </ul>
 
 </nav>
+  <div class="site-search">
+    <div class="search-pop-overlay">
+  <div class="popup search-popup">
+      <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+  </div>
+</div>
+
+  </div>
 </div>
     </header>
 
@@ -142,6 +178,8 @@
     <i class="fa fa-arrow-up"></i>
     <span>0%</span>
   </div>
+
+  <a href="https://github.com/solarqiang" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
 
 
     <main class="main">
@@ -156,7 +194,7 @@
       
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-cn">
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://solarqiang.github.io/posts/249898534/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -178,16 +216,16 @@
               <span class="post-meta-item-icon">
                 <i class="fa fa-calendar-o"></i>
               </span>
-              <span class="post-meta-item-text">Posted on</span>
+              <span class="post-meta-item-text">发表于</span>
 
-              <time title="Created: 2020-01-19 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-19T00:00:00+08:00">2020-01-19</time>
+              <time title="创建时间：2020-01-19 00:00:00" itemprop="dateCreated datePublished" datetime="2020-01-19T00:00:00+08:00">2020-01-19</time>
             </span>
               <span class="post-meta-item">
                 <span class="post-meta-item-icon">
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2020-03-19 21:16:50" itemprop="dateModified" datetime="2020-03-19T21:16:50+08:00">2020-03-19</time>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-03-19 22:17:15" itemprop="dateModified" datetime="2020-03-19T22:17:15+08:00">2020-03-19</time>
               </span>
 
           
@@ -203,6 +241,8 @@
       
         <h1 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h1><h2 id="进程与线程"><a href="#进程与线程" class="headerlink" title="进程与线程"></a>进程与线程</h2><p>类似其他操作系统的相应概念，Android 的进程拥有独立的虚拟内存空间，而线程与同一进程内的其他线程共享内存，只拥有各自的栈空间、程序计数器和寄存器等少量独占资源。<br>当 Android 启动一个之前未运行的应用的组件时，会为其启动一个包含单个主线程”main”的新的 Linux 进程。默认情况下，同一应用的所有组件会在此进程内启动，并且使用同一执行线程。<br>开发者可以人为安排组件在单独的进程中运行，并且为进程创建额外的线程。</p>
 <h2 id="Android-线程"><a href="#Android-线程" class="headerlink" title="Android 线程"></a>Android 线程</h2><p>每个 Android 应用都有一个主线程，也称界面线程，负责绘制 UI，处理用户交互以及接收生命周期事件。Android UI 操作不是线程安全的，这些操作必须在主线程执行。<br>为了不拖慢主线程，任何长时间运行的计算和操作都应在后台线程完成，避免 ANR。使用多线程还可以充分利用多核处理器的优势，通过并行提高运行速度。</p>
+<a id="more"></a>
+
 <ol>
 <li><p>创建线程的方法</p>
 <ol>
@@ -224,11 +264,11 @@
 <li><code>Activity.runOnUiThread(Runnable)</code></li>
 <li><code>View.post(Runnable)</code></li>
 <li><code>View.postDelayed(Runnable, long)</code></li>
-<li>使用 Handler<h2 id="Handler-介绍"><a href="#Handler-介绍" class="headerlink" title="Handler 介绍"></a>Handler 介绍</h2></li>
+<li>使用 Handler</li>
 </ol>
 </li>
 </ol>
-<p><code>Handler</code> 是 Android 系统线程管理框架的一部分，使用消息队列实现线程之间的通信。<br> <code>Handler</code> 允许你发送和处理关联到线程的 <code>MessageQueue</code> 的 <code>Message</code> 和 <code>Runnable</code> 对象。新的 <code>Handler</code> 会绑定到创建者线程的消息队列上。</p>
+<h2 id="Handler-介绍"><a href="#Handler-介绍" class="headerlink" title="Handler 介绍"></a>Handler 介绍</h2><p><code>Handler</code> 是 Android 系统线程管理框架的一部分，使用消息队列实现线程之间的通信。<br> <code>Handler</code> 允许你发送和处理关联到线程的 <code>MessageQueue</code> 的 <code>Message</code> 和 <code>Runnable</code> 对象。新的 <code>Handler</code> 会绑定到创建者线程的消息队列上。</p>
 <p>消息驱动机制的四要素：</p>
 <ol>
 <li>接收消息的“消息队列”：<code>MessageQueue</code></li>
@@ -505,10 +545,10 @@
 
       <ul class="sidebar-nav motion-element">
         <li class="sidebar-nav-toc">
-          Table of Contents
+          文章目录
         </li>
         <li class="sidebar-nav-overview">
-          Overview
+          站点概览
         </li>
       </ul>
 
@@ -529,12 +569,14 @@
           <a href="/archives/">
         
           <span class="site-state-item-count">5</span>
-          <span class="site-state-item-name">posts</span>
+          <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
         <span class="site-state-item-count">1</span>
-        <span class="site-state-item-name">tags</span>
+        <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
 </div>
@@ -566,10 +608,10 @@
   </span>
   <span class="author" itemprop="copyrightHolder">solarqiang</span>
 </div>
-  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> v4.2.0
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
   </div>
   <span class="post-meta-divider">|</span>
-  <div class="theme-info">Theme – <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.7.2
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
   </div>
 
         
@@ -595,7 +637,7 @@
 <script src="/js/motion.js"></script>
 
 
-<script src="/js/schemes/muse.js"></script>
+<script src="/js/schemes/pisces.js"></script>
 
 
 <script src="/js/next-boot.js"></script>
@@ -606,6 +648,10 @@
   
 
 
+
+
+  
+<script src="/js/local-search.js"></script>
 
 
 
