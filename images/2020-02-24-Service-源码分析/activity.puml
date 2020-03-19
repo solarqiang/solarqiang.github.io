@@ -1,0 +1,165 @@
+@startuml startService
+participant ContextImpl
+participant ActivityManagerService
+participant ActiveServices
+[-> ContextImpl: startService
+activate ContextImpl
+ContextImpl -> ContextImpl ++: startServiceCommon
+ContextImpl -> ContextImpl ++: validateServiceIntent
+deactivate ContextImpl
+ContextImpl -> ActivityManagerService --:   startService
+deactivate ContextImpl
+
+ActivityManagerService -> ActiveServices: startServiceLocked
+
+activate ActiveServices
+ActiveServices -> ActiveServices ++: retrieveServiceLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: startServiceInnerLocked
+ActiveServices -> ActiveServices ++: bringUpServiceLocked
+ActiveServices -> ActiveServices ++: realStartServiceLocked
+ActiveServices -> ApplicationThread: <i>oneway</i> scheduleCreateService
+
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: <i>new</i> CreateServiceData
+ApplicationThread -> ActivityThread --:  handleCreateService
+activate ActivityThread
+ActivityThread -> Service **: instantiateService
+ActivityThread --> ActivityThread: <i>new</i> ContextImpl
+ActivityThread -> ActivityThread: makeApplication
+ActivityThread -> Service: attach
+ActivityThread -> Service ++: onCreate
+deactivate Service
+deactivate ActivityThread
+
+ActiveServices -> ActiveServices ++: sendServiceArgsLocked
+ActiveServices -> ApplicationThread: <i>oneway</i> scheduleServiceArgs
+
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: <i>new</i> ServiceArgsData
+ApplicationThread -> ActivityThread --:  handleServiceArgs
+activate ActivityThread
+ActivityThread -> Service ++: onStartCommand
+@enduml
+
+
+@startuml bindService
+participant ContextImpl
+participant LoadedApk
+participant ServiceDispatcher
+participant ActivityManagerService
+participant ActiveServices
+[-> ContextImpl: bindService
+activate ContextImpl
+ContextImpl -> ContextImpl ++: bindServiceCommon
+ContextImpl -> LoadedApk ++: getServiceDispatcher
+LoadedApk -> ServiceDispatcher **: <i>new</i>
+LoadedApk --> ContextImpl --: IServiceConnection
+ContextImpl -> ActivityManagerService --:   bindIsolatedService
+deactivate ContextImpl
+
+ActivityManagerService -> ActiveServices: bindServiceLocked
+
+activate ActiveServices
+ActiveServices -> ActiveServices ++: retrieveServiceLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: bringUpServiceLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: requestServiceBindingLocked
+ActiveServices -> ApplicationThread --:   scheduleBindService
+deactivate ActiveServices
+
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: <i>new</i> BindServiceData
+ApplicationThread -> ActivityThread --:  handleBindService
+activate ActivityThread
+ActivityThread -> Service ++: onBind
+return IBinder
+ActivityThread -> ActivityManagerService --: publishService
+
+ActivityManagerService -> ActiveServices ++: publishServiceLocked
+ActiveServices -> ServiceDispatcher: connected
+deactivate ActiveServices
+ServiceDispatcher -> ServiceDispatcher ++: doConnected
+ServiceDispatcher -->[: onServiceConnected
+deactivate ServiceDispatcher
+@enduml
+
+
+@startuml unbindService
+participant ContextImpl
+participant ActivityManagerService
+participant ActiveServices
+
+[-> ContextImpl: unbindService
+activate ContextImpl
+ContextImpl -> ActivityManagerService --:  unbindService
+ActivityManagerService -> ActiveServices: unbindServiceLocked
+
+activate ActiveServices
+ActiveServices -> ActiveServices ++: removeConnectionLocked
+ActiveServices -> ApplicationThread: scheduleUnbindService
+activate ApplicationThread
+ActiveServices -> ActiveServices ++: bringDownServiceIfNeededLocked
+deactivate ActiveServices
+deactivate ActiveServices
+deactivate ActiveServices
+
+ApplicationThread --> ApplicationThread: <i>new</i> BindServiceData
+ApplicationThread -> ActivityThread --:  handleUnbindService
+
+activate ActivityThread
+ActivityThread -> Service ++: onUnind
+return
+ActivityThread -> ActivityManagerService --: UnbindFinished
+ActivityManagerService -> ActiveServices: UnbindFinishedLocked
+activate ActiveServices
+@enduml
+
+@startuml stopService
+participant ContextImpl
+participant ActivityManagerService
+participant ActiveServices
+[-> ContextImpl: stopService
+activate ContextImpl
+ContextImpl -> ContextImpl ++: stopServiceCommon
+ContextImpl -> ActivityManagerService --:  stopService
+deactivate ContextImpl
+
+ActivityManagerService -> ActiveServices: stopServiceLocked
+
+activate ActiveServices
+ActiveServices -> ActiveServices ++: bringDownServiceIfNeededLocked
+ActiveServices -> ActiveServices ++: isServiceNeededLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: bringDownServiceLocked
+ActiveServices -> ActiveServices ++: unscheduleServiceRestartLocked
+deactivate ActiveServices
+ActiveServices -> ApplicationThread --:   scheduleStopService
+deactivate ActiveServices
+deactivate ActiveServices
+
+activate ApplicationThread
+ApplicationThread -> ActivityThread --:  handleStopService
+activate ActivityThread
+ActivityThread -> Service ++: onDestroy
+ActivityThread -> Service:  detachAndCleanUp
+deactivate ActivityThread
+destroy Service
+@enduml
+
+@startuml restartService
+ActivityManagerService -> ActivityManagerService ++: appDiedLocked
+ActivityManagerService -> ActivityManagerService ++: cleanUpApplicationRecordLocked
+ActivityManagerService -> ActiveServices --:  killServicesLocked
+deactivate ActivityManagerService
+deactivate ActivityManagerService
+
+activate ActiveServices
+ActiveServices -> ActiveServices --: scheduleServiceRestartLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: performServiceRestartLocked
+ActiveServices -> ActiveServices ++: isServiceNeededLocked
+deactivate ActiveServices
+ActiveServices -> ActiveServices ++: bingUpServiceLocked
+@enduml

@@ -1,0 +1,235 @@
+@startuml Classes
+package android.content {
+    abstract class ContentProvider
+    abstract class ContentProviderNative
+    abstract class ContentProviderProxy
+    abstract class ContentResolver
+    class Transport
+    Interface ContentInterface
+    note top: 调用者调用，服务端要实现的接口
+    Interface IContentProvider
+    note top: IPC 过程使用的接口
+}
+package android.content.pm {
+    ' class PackageManager
+    class ProviderInfo
+}
+package android.app {
+    abstract class Context
+    class ContextImpl
+    class ActivityThread
+    class ContentProviderHolder
+    class ProviderClientRecord
+    class ApplicationContentResolver
+    class ProviderRefCount
+}
+package com.android.server.am {
+    class ActivityManagerService
+    class ContentProviderRecord
+    class ContentProviderConnection
+    class ProviderMap
+    class ProcessRecord
+}
+
+ContentResolver ..> IContentProvider
+ContentProvider *-- Transport
+IContentProvider <|.. ContentProviderNative
+IContentProvider <|.. ContentProviderProxy
+ContentProviderNative <|.. Transport
+ContentInterface <|.. ContentProvider
+ContentInterface <|.. ContentResolver
+
+Context <|.. ContextImpl
+ContentResolver <|.. ApplicationContentResolver
+ContextImpl *-- ApplicationContentResolver
+ApplicationContentResolver ..> ActivityThread
+ActivityThread *-- ProviderClientRecord
+ActivityThread *-- ProviderRefCount
+ProviderClientRecord o-- ContentProviderHolder
+ProviderRefCount --> ProviderClientRecord
+ProviderRefCount --> ContentProviderHolder
+ProviderClientRecord --> IContentProvider
+ProviderClientRecord --> ContentProvider
+ContentProviderHolder o-- ProviderInfo
+ContentProviderHolder --> IContentProvider
+
+ActivityManagerService *-- ProviderMap
+ActivityManagerService ..> ContentProviderHolder
+ActivityManagerService ..> ContentProviderRecord
+ProviderMap *-- ContentProviderRecord
+
+ContentProviderRecord o-- ProviderInfo
+ContentProviderRecord *-- ContentProviderConnection
+ContentProviderRecord --> IContentProvider
+ProcessRecord o-- ContentProviderConnection
+ProcessRecord o-- ContentProviderRecord
+
+Interface IContentProvider {
+    + insert(...)
+    + delete(...)
+    + update(...)
+    + query(...): Cursor
+    + getType(...): String
+}
+Interface ContentInterface {
+    + insert(...)
+    + delete(...)
+    + update(...)
+    + query(...): Cursor
+    + getType(...): String
+}
+class ActivityManagerService {
+~ ArrayList<ContentProviderRecord> mLaunchingProviders
+~ ProviderMap mProviderMap
++ publishContentProviders(...)
++ getContentProvider(...): ContentProviderHolder
+}
+class ProviderMap {
+- mProvidersByNamePerUser
+- mProvidersByClassPerUser
+~ getProviderByName(...): ContentProviderRecord
+~ getProviderByClass(...): ContentProviderRecord
+~ putProviderByName(...)
+~ putProviderByClass(...)
+~ removeProviderByName(...)
+~ removeProviderByClass(...)
+}
+class Context {
++ getContentResolver(): ContentResolver
+}
+class ContextImpl {
+' - ApplicationContentResolver mContentResolver
+- mContentResolver
+- ActivityThread mMainThread
+}
+class ContentProvider {
+- mTransport
+}
+class Transport {
+- mInterface
+}
+class ContentProviderProxy {
+- mRemote
+}
+class ProcessRecord {
+' ~ ArrayMap<String, ContentProviderRecord> pubProviders
+' ~ ArrayList<ContentProviderConnection> conProviders
+~ pubProviders
+~ conProviders
+}
+class ActivityThread {
+' ~ ArrayMap<ProviderKey, ProviderClientRecord> mProviderMap
+' ~ ArrayMap<IBinder, ProviderRefCount> mProviderRefCountMap
+' ~ ArrayMap<IBinder, ProviderClientRecord> mLocalProviders
+' ~ ArrayMap<ComponentName, ProviderClientRecord> mLocalProvidersByName
+~ mProviderMap
+~ mProviderRefCountMap
+~ mLocalProviders
+~ mLocalProvidersByName
++ acquireProvider(...): IContentProvider
++ acquireExistingProvider(...): IContentProvider
++ ReleaseProvider(...): boolean
+- installProvider(...): ContentProviderHolder
+}
+class ProviderClientRecord {
+~ String[] mNames
+~ IContentProvider mProvider
+~ ContentProvider mLocalProvider
+~ ContentProviderHolder mHolder
+}
+class ProviderRefCount {
++ ContentProviderHolder holder
++ ProviderClientRecord client
++ int stableCount
++ int unstableCount
++ boolean removePending
+}
+class ContentProviderHolder {
++ ProviderInfo info
++ IContentProvider provider
++ IBinder connection
++ boolean noReleaseNeeded
+}
+class ContentProviderRecord {
++ ProviderInfo info
++ int uid
+~ ApplicationInfo appInfo
+~ ComponentName name
++ boolean singleton
++ IContentProvider provider
++ boolean noReleaseNeeded
+' ~ ArrayList<ContentProviderConnection> connections
+~ connections
+~ ProcessRecord proc
+~ ProcessRecord launchingApp
+}
+class ContentProviderConnection {
++ ContentProviderRecord provider
++ ProcessRecord client
++ int stableCount
++ int unstableCount
++ boolean waiting
++ boolean dead
+}
+class ProviderInfo {
++ String authority
++ String readPermission
++ String writePermission
++ boolean grantUriPermissions
++ boolean forceUriPermissions
++ PatternMatcher[] UriPermissions
++ boolean multiprocess
++ int initOrder
+}
+@enduml
+
+@startuml interfaces
+package 客户端对象 {
+abstract class ContentProviderProxy
+abstract class ContentResolver
+}
+package 服务端对象 {
+abstract class ContentProvider
+abstract class ContentProviderNative
+class Transport
+}
+package 接口 {
+Interface ContentInterface
+note top: 调用者调用，服务端要实现的接口
+Interface IContentProvider
+note top: IPC 过程使用的接口
+}
+
+ContentResolver ..> IContentProvider
+ContentProvider *-- Transport
+IContentProvider <|.. ContentProviderNative
+IContentProvider <|.. ContentProviderProxy
+ContentProviderNative <|.. Transport
+ContentInterface <|.. ContentProvider
+ContentInterface <|.. ContentResolver
+
+Interface IContentProvider {
+    + insert(...)
+    + delete(...)
+    + update(...)
+    + query(...): Cursor
+    + getType(...): String
+}
+Interface ContentInterface {
+    + insert(...)
+    + delete(...)
+    + update(...)
+    + query(...): Cursor
+    + getType(...): String
+}
+
+class ContentProvider {
+- mTransport
+}
+class Transport {
+- ContentProvider mInterface
+}
+class ContentProviderProxy {
+- IBinder mRemote
+}
+@enduml

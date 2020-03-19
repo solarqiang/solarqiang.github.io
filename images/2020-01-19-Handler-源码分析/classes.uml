@@ -1,0 +1,72 @@
+@startuml
+class Handler
+class Looper
+class MessageQueue
+class Message
+
+Handler --> Looper
+Handler --> MessageQueue
+Looper *-- MessageQueue
+Handler ..> Message
+Looper ..> Message
+MessageQueue o-- Message
+
+class Handler {
+~ Looper mLooper
+~ MessageQueue mQueue
+~ Callback mCallback
+~ boolean mAsynchronous
+~ IMessenger mMessenger
++ static createAsync(Looper, Callback)
++ handleMessage(Message)
++ sendMessage(Message): boolean
++ post(Runnable
++ obtainMessage(): Message
++ removeMessages(int, Object)
++ removeCallbacks(Runnable, Object)
++ dispatchMessage(Message)
+- enqueueMessage(MessageQueue, Messsage, long): boolean
+- static getPostMessage(Runnable): Message
+}
+class Looper {
+~ ThreadLocal<Looper> sThreadLocal
+- static Looper sMainLooper
+- static Observer sObserver
+~ MessageQueue mQueue
+~ Thread mThread
++ static loop()
++ static myLooper()
++ static myQueue()
++ static prepare(boolean)
++ static prepareMainLooper()
++ static getMainLooper()
++ static setObserver(Observer)
++ quit()
+}
+class MessageQueue {
+- boolean mQuitting
+- boolean mQuiAllowed
+- long mPtr
+~ next(): Message
+~ quit(): boolean
++ postSyncBarrier(long): int
++ removeSyncBarrier(int)
++ addIdleHandler(long): int
++ removeIdleHandler(int)
+~ enqueueMessage(Message, long): boolean
+~ removeMessages(Handler, int, Object)
+}
+class Message {
++ int what
++ int arg1
++ int arg2
++ Object obj
++ Messenger replyTo
+~ Handler target
+~ Runnable callback
+~ Message next
+- static Message sPool
++ static obtain(Handler, int, int, int, Object): Message
+
+}
+@enduml

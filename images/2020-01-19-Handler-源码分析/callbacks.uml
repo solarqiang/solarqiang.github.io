@@ -1,0 +1,31 @@
+@startuml
+:new MessageQueue();
+:nativeInit();
+#Fuchsia:         JNI         ]
+:new NativeMessageQueue();
+:new Looper();
+:rebuildEpollLocked();
+#LightSteelBlue:epoll_create() & epoll_ctl();
+@enduml
+
+@startuml
+:Looper.loop();
+:MessageQueue.next();
+:MessageQueue.nativePollOnce();
+#Fuchsia:         JNI         ]
+:NativeMessageQueue::pollOnce();
+:Looper::pollOnce();
+:Looper::pollInnter(timeoutMillis);
+#LightSteelBlue:epoll_wait();
+@enduml
+
+@startuml
+:Handler.sendMessage();
+:Handler.enqueueMessage();
+:MessageQeue.enqueueMessage();
+:nativeWake();
+#Fuchsia:         JNI         ]
+:NativeMessageQueue::wake();
+:Looper::wake();
+#LightSteelBlue:write();
+@enduml

@@ -1,0 +1,44 @@
+@startuml
+start
+while (true)
+    :等待消息或定时唤醒|
+
+partition 同步屏障 {
+    if(当前消息是同步屏障) then (是)
+        :向前搜索异步消息;
+    else (否)
+    endif
+}
+
+partition 判断消息状态 {
+    if (当前消息非空) then (是)
+        if(当前消息到了处理时间) then (是)
+            :返回消息/
+            end
+        else (否)
+            :设置定时唤醒]
+        endif
+    else (否)
+        :设置无限等待消息]
+    endif
+}
+
+partition 退出循环 {
+    if (需要退出消息循环) then (是)
+        :清理现场;
+        :返回 null/
+        stop
+    else (否)
+    endif
+}
+
+partition IdleHandler {
+    if (需要处理 IdleHandler) then (是)
+        :处理 IdleHandler;
+        :设置立即唤醒]
+    else (否)
+    endif
+}
+endwhile
+detach
+@enduml
