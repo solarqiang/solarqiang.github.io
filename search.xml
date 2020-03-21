@@ -4,6 +4,27 @@
   
     
     <entry>
+      <title>Java 遍历 PriorityQueue 注意事项</title>
+      <link href="/posts/3921235105/"/>
+      <url>/posts/3921235105/</url>
+      
+        <content type="html"><![CDATA[<p>最近写 LeetCode 踩了个坑，记录一下。</p><p>对于 PriorityQueue 和 ArrayList：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PriorityQueue&lt;Integer&gt; queue;</span><br><span class="line">ArrayList&lt;Integer&gt; list;</span><br></pre></td></tr></table></figure><p>下面两个操作是等价的：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #1</span></span><br><span class="line"><span class="keyword">for</span> (Integer i: list)</span><br><span class="line">    queue.add(i);</span><br><span class="line"><span class="comment">// #2</span></span><br><span class="line">queue.addAll(list);</span><br></pre></td></tr></table></figure><p>然而下面代码中，前两个操作与第三个操作是<strong>不等价</strong>的：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// #1</span></span><br><span class="line"><span class="keyword">for</span> (Integer i: queue)</span><br><span class="line">    list.add(i);</span><br><span class="line"><span class="comment">// #2</span></span><br><span class="line">list.addAll(i);</span><br><span class="line"><span class="comment">// #3</span></span><br><span class="line"><span class="keyword">while</span> (!queue.isEmpty())</span><br><span class="line">    list.add(queue.poll());</span><br></pre></td></tr></table></figure><p>原因是 <code>PriorityQueue.poll</code> 操作会改变原有队列：弹出堆顶元素，再调整堆使其保持最小堆性质，这一改变对于维护其出列的有序性是必要的。另一方面，如果没有出列再调整这一过程，优先队列并不能保证遍历的有序性：只是简单的前序遍历。<br>换句话说就是 <code>queue.poll</code> 方法取出元素的顺序是有序的，而 <code>addAll</code> 方法与使用 for-each 循环遍历优先队列不改变原有优先队列，也就不能保证遍历顺序是有序的。这两个顺序<strong>不一样</strong>！</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> Java </tag>
+            
+            <tag> 算法 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Android 应用组件源码分析 PPT 分享</title>
       <link href="/posts/2137979396/"/>
       <url>/posts/2137979396/</url>
