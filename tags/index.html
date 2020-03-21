@@ -227,7 +227,7 @@
 
           </div>
           
-    <div class="comments" id="valine-comments"></div>
+    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -399,32 +399,23 @@
 
   
 
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
 
 <script>
-NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
-  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
-    var GUEST = ['nick', 'mail', 'link'];
-    var guest = 'nick,mail,link';
-    guest = guest.split(',').filter(item => {
-      return GUEST.includes(item);
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'f7b603007e72448a85b0',
+      clientSecret: 'a8354c5d4cc087aef62a729d4c69750b38cd2ad4',
+      repo        : 'solarqiang.github.io',
+      owner       : 'solarqiang',
+      admin       : ['solarqiang'],
+      id          : '2752a4ad0822c5acbda0ff9fd26a5c26',
+        language: 'zh-CN',
+      distractionFreeMode: true
     });
-    new Valine({
-      el         : '#valine-comments',
-      verify     : false,
-      notify     : false,
-      appId      : 'Lp3J5j6IFsUWlUTWGu2gz124-MdYXbMMI',
-      appKey     : 'zHo63xo5LgfSleSa3MWgbTyj',
-      placeholder: "说点什么吧……",
-      avatar     : 'mm',
-      meta       : guest,
-      pageSize   : '10' || 10,
-      visitor    : true,
-      lang       : '' || 'zh-cn',
-      path       : location.pathname,
-      recordIP   : false,
-      serverURLs : ''
-    });
-  }, window.Valine);
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
 });
 </script>
 
