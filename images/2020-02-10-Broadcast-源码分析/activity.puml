@@ -1,0 +1,172 @@
+@startuml SendBroadcast
+[-> Context: sendBroadcast
+activate Context
+Context -> ActivityManagerService ++: broadcastIntent
+ActivityManagerService -> ActivityManagerService ++: broadcastIntentLocked
+ActivityManagerService -> ActivityManagerService ++: collectReceiverComponents
+deactivate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: queryIntent
+deactivate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: broadcastQueueForIntent
+deactivate ActivityManagerService
+ActivityManagerService --> ActivityManagerService: new BroadcastRecord 
+ActivityManagerService -> BroadcastQueue: enqueueParallelBroadcastLocked
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastLocked
+ActivityManagerService -> BroadcastQueue: enqueueOrderedBroadcastLocked
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastLocked
+ActivityManagerService -->[: return SUCCESS
+deactivate ActivityManagerService
+deactivate ActivityManagerService
+deactivate Context
+@enduml
+
+@startuml SendRegisteredBroadcast2
+ActivityManagerService -> BroadcastQueue: enqueueOrderedBroadcastLocked
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastLocked
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcast
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcastLocked
+BroadcastQueue -> BroadcastQueue ++: deliverToRegisteredReceiverLocked
+BroadcastQueue -> BroadcastQueue ++: performReceiveLocked
+BroadcastQueue -> ApplicationThread --:   scheduleRegisteredReceiver 
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+
+activate ApplicationThread
+ApplicationThread -> ReceiverDispatcher ++: performReceive
+ReceiverDispatcher --> Args **: new 
+ReceiverDispatcher -> Args --:  post
+activate Args
+deactivate ApplicationThread
+
+Args -> BroadcastReceiver: setPendingResult
+Args -> BroadcastReceiver ++: onReceive
+return
+Args -> Args ++: sendFinished
+Args -> ActivityManagerService --: finishReceiver
+activate ActivityManagerService
+deactivate Args
+
+ActivityManagerService -> BroadcastQueue ++: finishReceiverLocked
+return
+@enduml
+
+@startuml SendRegisteredBroadcast
+[-> Context: sendBroadcast
+activate Context
+Context -> ActivityManagerService ++: broadcastIntent
+ActivityManagerService -> ActivityManagerService ++: broadcastIntentLocked
+ActivityManagerService -> ActivityManagerService ++: collectReceiverComponents
+deactivate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: queryIntent
+deactivate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: broadcastQueueForIntent
+deactivate ActivityManagerService
+ActivityManagerService --> ActivityManagerService: new BroadcastRecord 
+ActivityManagerService -> BroadcastQueue: enqueueParallelBroadcastLocked
+ActivityManagerService -> BroadcastQueue --:    scheduleBroadcastLocked
+deactivate ActivityManagerService
+deactivate Context
+
+activate BroadcastQueue
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcast
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcastLocked
+BroadcastQueue -> BroadcastQueue ++: deliverToRegisteredReceiverLocked
+BroadcastQueue -> BroadcastQueue ++: performReceiveLocked
+BroadcastQueue -> ApplicationThread --:   scheduleRegisteredReceiver 
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+
+activate ApplicationThread
+ApplicationThread -> ReceiverDispatcher ++: performReceive
+ReceiverDispatcher --> Args **: new 
+ReceiverDispatcher -> Args --:  post
+activate Args
+deactivate ApplicationThread
+
+Args -> BroadcastReceiver: setPendingResult
+Args -> BroadcastReceiver ++: onReceive
+return
+Args -> BroadcastReceiver ++: sendFinished
+BroadcastReceiver -> ActivityManagerService --: finishReceiver
+activate ActivityManagerService
+deactivate Args
+
+ActivityManagerService -> BroadcastQueue ++: finishReceiverLocked
+return
+@enduml
+
+@startuml sendOrderedBroadcast
+ActivityManagerService -> BroadcastQueue: enqueueOrderedBroadcastLocked
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastLocked
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcast
+BroadcastQueue -> BroadcastQueue ++: processNextBroadcastLocked
+BroadcastQueue -> BroadcastQueue ++: processCurBroadcastLocked
+BroadcastQueue -> ApplicationThread --:   scheduleReceiver
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+deactivate BroadcastQueue
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: new ReceiverData
+' activate ApplicationThread
+ApplicationThread -> ActivityThread --:   handleReceiver
+activate ActivityThread
+ActivityThread -> BroadcastReceiver: setPendingResult
+ActivityThread -> BroadcastReceiver ++: onReceive
+return
+ActivityThread -> BroadcastReceiver ++: sendFinished
+BroadcastReceiver -> ActivityManagerService --: finishReceiver
+activate ActivityManagerService
+deactivate ActivityThread
+
+ActivityManagerService -> BroadcastQueue ++: finishReceiverLocked
+return
+@enduml
+
+@startuml registerBroadcast
+[-> ContextImpl: registerReceiver
+ContextImpl -> ContextImpl ++: registerReceiverInternal
+ContextImpl -> LoadedApk ++: getReceiverDispatcher
+LoadedApk -->  LoadedApk: new receiverDispatcher
+return IIntentReceiver
+ContextImpl -> ActivityManagerService ++: registerReceiver
+ActivityManagerService --> ActivityManagerService: new BroadcastFilter
+ActivityManagerService -> IntentResolver ++: addFilter
+return
+opt AllSticky != null
+ActivityManagerService -> ActivityManagerService ++: broadcastQueueForIntent
+deactivate ActivityManagerService
+ActivityManagerService --> ActivityManagerService: new BroadcastRecord 
+ActivityManagerService -> BroadcastQueue: enqueueParallelBroadcastLocked
+ActivityManagerService -> BroadcastQueue: scheduleBroadcastsLocked
+end
+ActivityManagerService --> ContextImpl --: return sticky
+ContextImpl -->[: return sticky
+deactivate ContextImpl
+@enduml
+
+@startuml startActivity
+[->ActivityThread: main
+activate ActivityThread
+participant ApplicationThread
+ActivityThread -> ActivityThread ++: attach
+ActivityThread -> ActivityManagerService --:   attachApplication
+deactivate ActivityThread
+
+activate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: attachApplicationLocked
+ActivityManagerService -> BroadcastQueue ++: sendPendingBroadcastsLocked
+BroadcastQueue -> BroadcastQueue ++: processCurBroadcastLocked
+BroadcastQueue -> ApplicationThread --: scheduleReceiver
+deactivate BroadcastQueue
+deactivate ActivityManagerService
+deactivate ActivityManagerService
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: new ReceiverData
+ApplicationThread -> ActivityThread --:  handleReceiver
+deactivate ApplicationThread
+deactivate ApplicationThread
+@enduml

@@ -1,0 +1,89 @@
+@startuml query
+[-> ContentResolver: query
+activate ContentResolver
+ContentResolver -> ContentResolver ++: acquireUnstableProvider
+ContentResolver -> ActivityThread ++: acquireProvider
+ActivityThread -> ActivityThread ++: acquireExistingProvider
+deactivate ActivityThread
+ActivityThread -> ActivityManagerService ++: getContentProvider
+alt 应用进程已启动
+    ActivityManagerService -> ApplicationThread2: scheduleInstallProvider
+    ApplicationThread2 -> ActivityThread2:  handleInstallProvider
+else 应用进程未启动
+    ActivityManagerService -> ActivityManagerService: startProcessLocked
+end
+ActivityManagerService --> ActivityManagerService: wait
+deactivate ActivityManagerService
+... 等待 ContentProvider 就绪 ...
+ActivityThread2 -> ActivityManagerService: publishContentProviders
+ActivityManagerService --> ActivityManagerService ++: notifyAll
+ActivityManagerService --> ActivityThread: return ContentProviderHolder
+deactivate ActivityManagerService
+ActivityThread -> ActivityThread ++: installProvider
+deactivate ActivityThread
+ActivityThread -> ContentResolver --: return IContentProvider
+ContentResolver -->[: return Cursor
+deactivate ContentResolver
+deactivate ContentResolver
+@enduml
+
+@startuml scheduleInstallProvider
+participant ActivityManagerService
+participant ApplicationThread
+participant ActivityThread
+ActivityManagerService -> ApplicationThread++: scheduleInstallProvider
+ApplicationThread -> ActivityThread --:  handleInstallProvider
+activate ActivityThread
+ActivityThread -> ActivityThread ++: installContentProviders
+ActivityThread -> ActivityThread ++: installProvider
+ActivityThread -> ActivityManagerService --: publishContentProviders
+deactivate ActivityThread
+deactivate ActivityThread
+activate ActivityManagerService
+ActivityManagerService --> ActivityManagerService: notifyAll
+@enduml
+
+@startuml startActivity
+[->ActivityThread: main
+activate ActivityThread
+participant ApplicationThread
+ActivityThread -> ActivityThread ++: attach
+ActivityThread -> ActivityManagerService --:   attachApplication
+deactivate ActivityThread
+
+activate ActivityManagerService
+ActivityManagerService -> ActivityManagerService ++: attachApplicationLocked
+ActivityManagerService -> ActivityManagerService ++: generateApplicationProvidersLocked
+ActivityManagerService -> PackageManager ++: queryContentProviders
+return providers
+deactivate ActivityManagerService
+ActivityManagerService -> ApplicationThread --: bindApplication
+
+deactivate ActivityManagerService
+activate ApplicationThread
+ApplicationThread --> ApplicationThread: new AppBindData
+ApplicationThread -> ActivityThread --: handleBindApplication
+
+activate ActivityThread
+ActivityThread -> ActivityThread ++: installContentProviders
+@enduml
+
+@startuml transact
+[-> ContentResolver: insert
+activate ContentResolver
+ContentResolver -> ContentProviderProxy ++: insert
+ContentProviderProxy -> IBinder: transact
+IBinder -> Transport ++: onTransact
+Transport -> ContentProvider ++: insert
+ContentProvider -->[: return Uri
+deactivate ContentProvider
+deactivate Transport
+deactivate ContentProviderProxy
+deactivate ContentResolver
+' ContentProvider --> Transport--: return Uri
+' Transport --> IBinder--: return Uri
+' IBinder --> ContentProviderProxy --: return Uri
+' ContentProviderProxy --> ContentResolver --: return Uri
+' ContentResolver -->[: return Uri
+' deactivate ContentResolver
+@enduml

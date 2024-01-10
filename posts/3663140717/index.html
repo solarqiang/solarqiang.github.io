@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="b6sfFZ2JS42hoER_mUyRDfihbdCJv_T81PvPJY4zjM0">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Mist","version":"7.7.2","exturl":false,"sidebar":{"position":"left","width":280,"display":"hide","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":3,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="ContentProvider 简介内容提供程序(Content Provider)是 Android 应用程序四大组件之一，它提供了对应用使用的底层数据的抽象，使其他应用可以通过 ContentResolver 接口访问其数据，而无需了解数据的具体存储方式。 使用 ContentProvider实现 ContentProvider 类ContentProvider 是一个抽象类，开发者需要实现其">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ContentProvider 源码分析">
+<meta property="og:url" content="http://solarqiang.github.io/posts/3663140717/">
+<meta property="og:site_name" content="小强的开发笔记">
+<meta property="og:description" content="ContentProvider 简介内容提供程序(Content Provider)是 Android 应用程序四大组件之一，它提供了对应用使用的底层数据的抽象，使其他应用可以通过 ContentResolver 接口访问其数据，而无需了解数据的具体存储方式。 使用 ContentProvider实现 ContentProvider 类ContentProvider 是一个抽象类，开发者需要实现其">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/Classes.svg">
+<meta property="og:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/query.svg">
+<meta property="og:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/transact.svg">
+<meta property="og:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/scheduleInstallProvider.svg">
+<meta property="og:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/startActivity.svg">
+<meta property="article:published_time" content="2020-02-17T16:00:00.000Z">
+<meta property="article:modified_time" content="2024-01-09T17:38:19.128Z">
+<meta property="article:author" content="solarqiang">
+<meta property="article:tag" content="Android">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://solarqiang.github.io/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/Classes.svg">
+
+<link rel="canonical" href="http://solarqiang.github.io/posts/3663140717/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ContentProvider 源码分析 | 小强的开发笔记</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">小强的开发笔记</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="search-pop-overlay">
+  <div class="popup search-popup">
+      <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+  </div>
+</div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://solarqiang.github.io/posts/3663140717/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="solarqiang">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小强的开发笔记">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ContentProvider 源码分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-02-18 00:00:00" itemprop="dateCreated datePublished" datetime="2020-02-18T00:00:00+08:00">2020-02-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-01-10 01:38:19" itemprop="dateModified" datetime="2024-01-10T01:38:19+08:00">2024-01-10</time>
+              </span>
+
+          
+            <span id="/posts/3663140717/" class="post-meta-item leancloud_visitors" data-flag-title="ContentProvider 源码分析" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="ContentProvider-简介"><a href="#ContentProvider-简介" class="headerlink" title="ContentProvider 简介"></a>ContentProvider 简介</h1><p>内容提供程序(Content Provider)是 Android 应用程序四大组件之一，它提供了对应用使用的底层数据的抽象，使其他应用可以通过 ContentResolver 接口访问其数据，而无需了解数据的具体存储方式。</p>
+<h2 id="使用-ContentProvider"><a href="#使用-ContentProvider" class="headerlink" title="使用 ContentProvider"></a>使用 ContentProvider</h2><h3 id="实现-ContentProvider-类"><a href="#实现-ContentProvider-类" class="headerlink" title="实现 ContentProvider 类"></a>实现 ContentProvider 类</h3><p>ContentProvider 是一个抽象类，开发者需要实现其中一些方法才能使用：</p>
+<ul>
+<li><code>onCreate()</code>: 用来初始化内容提供程序提供程序。</li>
+<li><code>query(Uri, String[], Bundle, CancellationSignal)</code>: 返回数据给调用者。</li>
+<li><code>insert(Uri, ContentValues)</code>: 插入新数据。</li>
+<li><code>update(Uri, ContentValues, String, String[])</code>: 更新现有的数据。</li>
+<li><code>delete(Uri, String, String[])</code>: 删除数据。</li>
+<li><code>getType(Uri)</code>: 返回数据的 MIME 类型。</li>
+</ul>
+<p>注意数据访问的方法可能被多个线程同时访问，因此需要做到线程安全。</p>
+<h3 id="配置清单文件"><a href="#配置清单文件" class="headerlink" title="配置清单文件"></a>配置清单文件</h3><p>仅仅一个自定义类还不够，ContentProvider与activity、service一样，需要在AndroidManifest.xml文件中进行配置。</p>
+<span id="more"></span>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">provider</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:name</span>=<span class="string">&quot;.MyContentProvider&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:authorities</span>=<span class="string">&quot;com.example.content.provider&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:multiprocess</span>=<span class="string">&quot;false&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:process</span>=<span class="string">&quot;:remote&quot;</span></span></span><br><span class="line"><span class="tag">    <span class="attr">android:exported</span>=<span class="string">&quot;true&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>name</code> 为自定义的 ContentProvider 子类名称</li>
+<li><code>authorities</code> 类似 URL 的域名，其他应用使用该值获取访问内容提供程序的 URI，需要保证全局唯一。</li>
+<li><code>exported</code> 为 true 则表示允许其他应用访问应用中的 ContentProvider（跨应用访问），默认为 false。</li>
+<li><code>process</code> 表示 ContentProvider 所在的进程。</li>
+<li><code>multiprocess</code> 为 true 表示每个调用者进程都会创建一个 <code>ContentProvider</code> 实例，默认为 false。</li>
+</ul>
+<p>当 multiprocess、process 这两个参数结合起来会产生以下几种情况。</p>
+<ul>
+<li><code>android:process=&quot;:remote&quot;、android:multiprocess=&quot;true&quot;</code>，ContentProvider 不会随应用的启动而加载，当调用 ContentProvider 的时候才会加载，并且 ContentProvider 是在调用者的进程中初始化。这时候可能定义 ContentProvider 的”:remote”进程还没有启动。</li>
+<li><code>android:process=&quot;:remote&quot;、android:multiprocess=&quot;false&quot;</code>（默认情况） ，ContentProvider 不会随应用的启动而加载，当调用到 ContentProvider 的时候才会加载，并且 ContentProvider 是在“:remote”进程中初始化。</li>
+<li><code>android:multiprocess=&quot;true&quot;</code>，ContentProvider 会随着应用的启动而加载，并且 ContentProvider 是在应用进程的主线程中初始化的。当被调用时会在调用者进程中实例化一个 ContentProvider 对象。</li>
+<li><code>android:multiprocess=&quot;false&quot;</code>（默认情况），ContentProvider 会随着应用的启动而加载，并且 ContentProvider 是在应用主进程的主线程中初始化的。这种 ContentProvider 只有一个实例，运行在自己 App 的进程中。所有调用者共享该 ContentProvider 实例，调用者与 ContentProvider 实例位于两个不同的进程。</li>
+</ul>
+<h3 id="获取-URI"><a href="#获取-URI" class="headerlink" title="获取 URI"></a>获取 URI</h3><p>ContentProvider 的使用者需要获取 URI，再使用 ContentResolver 对象进行 CRUD 操作。示例代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Uri</span> <span class="variable">uri_user</span> <span class="operator">=</span> Uri.parse(<span class="string">&quot;content://com.example.content.provider&quot;</span>);</span><br><span class="line"><span class="type">ContentResolver</span> <span class="variable">resolver</span> <span class="operator">=</span> getContentResolver();</span><br><span class="line">resolver.insert(uri_user, ...);</span><br><span class="line">resolver.query(uri_user,...);</span><br><span class="line">resolver.update(uri_user,...);</span><br><span class="line">resolver.delete(uri_user,...);</span><br></pre></td></tr></table></figure>
+
+<p>URI 类似 URL，由四个部分组成：</p>
+<ol>
+<li>URI Scheme，固定为 <code>&quot;content://&quot;</code>；</li>
+<li>Content Provider 组件的 <code>authorities</code> 属性值；</li>
+<li>资源相对路径；</li>
+<li>资源 ID。</li>
+</ol>
+<p>如果这个 ContentProvider 只有一个资源，那么资源相对路径和资源 ID 不是必须的。</p>
+<h1 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h1><p><img src="/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/Classes.svg" alt="ContentProvider 类图"></p>
+<p>读者可以参考这张类图，对 ContentProvider 使用到的类和方法建立一个初步印象。</p>
+<h2 id="ContentResolver"><a href="#ContentResolver" class="headerlink" title="ContentResolver"></a>ContentResolver</h2><h3 id="getContentResolver"><a href="#getContentResolver" class="headerlink" title="getContentResolver"></a><code>getContentResolver</code></h3><p>应用开发者使用 <code>Context.getContentResolver()</code> 方法获取 ContentResolver，其实现在 ContextImpl 类中:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> ContentResolver <span class="title function_">getContentResolver</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> mContentResolver;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中 <code>mContentResolver</code> 是 ApplicationContentResolver 类型的私有变量，该类型实现了 ContentResolver，提供了一系列 <code>ActivityThread mainThread</code> 的代理方法。</p>
+<h3 id="ContentResolver-交互过程"><a href="#ContentResolver-交互过程" class="headerlink" title="ContentResolver 交互过程"></a>ContentResolver 交互过程</h3><p><img src="/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/query.svg" alt="ContentResolver 交互过程"></p>
+<p>下面从 <code>ContentResolver.query</code> 入手，分析 ContentResolver 如何解析并获取对应的 ContentProvider 的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="meta">@Nullable</span> Cursor <span class="title function_">query</span><span class="params">(<span class="keyword">final</span> <span class="meta">@RequiresPermission</span>.Read <span class="meta">@NonNull</span> Uri uri,</span></span><br><span class="line"><span class="params">        <span class="meta">@Nullable</span> String[] projection, <span class="meta">@Nullable</span> Bundle queryArgs,</span></span><br><span class="line"><span class="params">        <span class="meta">@Nullable</span> CancellationSignal cancellationSignal)</span> &#123;</span><br><span class="line">    Preconditions.checkNotNull(uri, <span class="string">&quot;uri&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (mWrapped != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> mWrapped.query(uri, projection, queryArgs, cancellationSignal);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="type">IContentProvider</span> <span class="variable">unstableProvider</span> <span class="operator">=</span> acquireUnstableProvider(uri);</span><br><span class="line">    <span class="keyword">if</span> (unstableProvider == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">IContentProvider</span> <span class="variable">stableProvider</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="type">Cursor</span> <span class="variable">qCursor</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">startTime</span> <span class="operator">=</span> SystemClock.uptimeMillis();</span><br><span class="line"></span><br><span class="line">        <span class="type">ICancellationSignal</span> <span class="variable">remoteCancellationSignal</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (cancellationSignal != <span class="literal">null</span>) &#123;</span><br><span class="line">            cancellationSignal.throwIfCanceled();</span><br><span class="line">            remoteCancellationSignal = unstableProvider.createCancellationSignal();</span><br><span class="line">            cancellationSignal.setRemote(remoteCancellationSignal);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            qCursor = unstableProvider.query(mPackageName, uri, projection,</span><br><span class="line">                    queryArgs, remoteCancellationSignal);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (DeadObjectException e) &#123;</span><br><span class="line">            <span class="comment">// The remote process has died...  but we only hold an unstable</span></span><br><span class="line">            <span class="comment">// reference though, so we might recover!!!  Let&#x27;s try!!!!</span></span><br><span class="line">            <span class="comment">// This is exciting!!1!!1!!!!1</span></span><br><span class="line">            unstableProviderDied(unstableProvider);</span><br><span class="line">            stableProvider = acquireProvider(uri);</span><br><span class="line">            <span class="keyword">if</span> (stableProvider == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            qCursor = stableProvider.query(</span><br><span class="line">                    mPackageName, uri, projection, queryArgs, remoteCancellationSignal);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (qCursor == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Force query execution.  Might fail and throw a runtime exception here.</span></span><br><span class="line">        qCursor.getCount();</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Wrap the cursor object into CursorWrapperInner object.</span></span><br><span class="line">        <span class="keyword">final</span> <span class="type">IContentProvider</span> <span class="variable">provider</span> <span class="operator">=</span> (stableProvider != <span class="literal">null</span>) ? stableProvider</span><br><span class="line">                : acquireProvider(uri);</span><br><span class="line">        <span class="keyword">final</span> <span class="type">CursorWrapperInner</span> <span class="variable">wrapper</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CursorWrapperInner</span>(qCursor, provider);</span><br><span class="line">        stableProvider = <span class="literal">null</span>;</span><br><span class="line">        qCursor = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">return</span> wrapper;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        <span class="comment">// Arbitrary and not worth documenting, as Activity</span></span><br><span class="line">        <span class="comment">// Manager will kill this process shortly anyway.</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        ... <span class="comment">// 释放资源</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>使用 Preconditions 检查 <code>uri</code> 是否为空，若为空抛出 NullPointerException；</li>
+<li>检查是否设定对象成员<code>ContentInterface mWrapped</code>，若设定则直接使用其 <code>query</code> 方法返回值；</li>
+<li>尝试调用 <code>acquireUnstableProvider(Uri)</code> 方法获取 <code>IContentProvider unstableProvider</code>，如果获取失败则直接返回 null；</li>
+<li>如果传入了 <code>cancellationSignal</code>，处理之；</li>
+<li>调用 <code>unstableProvider.query</code> 方法，获取 <code>qCursor</code>；<ol>
+<li>如果这时远程进程已结束(DeadObjectException)，尝试获取 <code>stableProvider</code>：调用 <code>unstableProviderDied</code> 释放相关引用，再尝试用 <code>acquireProvider</code> 方法获取 <code>stableProvider</code>，最后调用其 <code>query</code> 方法获取 <code>qCursor</code>；</li>
+</ol>
+</li>
+<li>如果之前没有获取 <code>stableProvider</code>，获取之；</li>
+<li>将 <code>stableProvider</code> 与 <code>qCursor</code> 包装到 <code>CursorWrapperInner</code> 对象，返回这个对象；</li>
+<li>最后释放资源。</li>
+</ol>
+<p>unstableProvider 与 stableProvider 在 ActivityThread 和 AMS 都有各自独立的引用计数，区别在于使用 unstableProvider 的客户端进程不会受到 ContentProvider 服务端进程死亡的牵连，而使用 stableProvider，服务端死亡将导致客户端进程也被杀死。</p>
+<p><code>insert, update, delete</code> 方法直接使用 <code>stableProvider</code>。这一设计的目的是保证客户端与服务端的数据一致性。</p>
+<h2 id="获取-ContentProvider-过程"><a href="#获取-ContentProvider-过程" class="headerlink" title="获取 ContentProvider 过程"></a>获取 ContentProvider 过程</h2><h3 id="acquireUnstableProvider-acquireProvider"><a href="#acquireUnstableProvider-acquireProvider" class="headerlink" title="acquireUnstableProvider &amp; acquireProvider"></a><code>acquireUnstableProvider</code> &amp; <code>acquireProvider</code></h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> IContentProvider <span class="title function_">acquireUnstableProvider</span><span class="params">(Uri uri)</span> &#123;</span><br><span class="line">    ... <span class="comment">// 检查 URI scheme</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">auth</span> <span class="operator">=</span> uri.getAuthority();</span><br><span class="line">    <span class="keyword">if</span> (auth != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> acquireUnstableProvider(mContext, uri.getAuthority());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>acquireUnstableProvider(Uri)</code> 方法检查 URI sheme，再调用 <code>acquireUnstableProvider(Context, String)</code> 方法。这个方法的实现在之前介绍的 ApplicationContentResolver 中，实际上是代理了 ActivityThread 中的 acquireProvider 方法。</p>
+<p><code>android.app.ContextImpl</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> IContentProvider <span class="title function_">acquireUnstableProvider</span><span class="params">(Context c, String auth)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> mMainThread.acquireProvider(c,</span><br><span class="line">            ContentProvider.getAuthorityWithoutUserId(auth),</span><br><span class="line">            resolveUserIdFromAuthority(auth), <span class="literal">false</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>acquireProvider(Uri)</code> 方法的情况与 <code>acquireUnstableProvider</code> 的情况相似，唯一要注意的是调用 <code>ActivityThread.acquireProvider</code> 方法时最后一个参数为 <code>true</code> 而非 <code>false</code>。</p>
+<h4 id="ActivityThread-acquireProvider"><a href="#ActivityThread-acquireProvider" class="headerlink" title="ActivityThread.acquireProvider"></a><code>ActivityThread.acquireProvider</code></h4><p><code>android.app.ActivityThread</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> IContentProvider <span class="title function_">acquireProvider</span><span class="params">(</span></span><br><span class="line"><span class="params">        Context c, String auth, <span class="type">int</span> userId, <span class="type">boolean</span> stable)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">IContentProvider</span> <span class="variable">provider</span> <span class="operator">=</span> acquireExistingProvider(c, auth, userId, stable);</span><br><span class="line">    <span class="keyword">if</span> (provider != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> provider;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// There is a possible race here.  Another thread may try to acquire</span></span><br><span class="line">    <span class="comment">// the same provider at the same time.  When this happens, we want to ensure</span></span><br><span class="line">    <span class="comment">// that the first one wins.</span></span><br><span class="line">    <span class="comment">// Note that we cannot hold the lock while acquiring and installing the</span></span><br><span class="line">    <span class="comment">// provider since it might take a long time to run and it could also potentially</span></span><br><span class="line">    <span class="comment">// be re-entrant in the case where the provider is in the same process.</span></span><br><span class="line">    <span class="type">ContentProviderHolder</span> <span class="variable">holder</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (getGetProviderLock(auth, userId)) &#123;</span><br><span class="line">            holder = ActivityManager.getService().getContentProvider(</span><br><span class="line">                    getApplicationThread(), c.getOpPackageName(), auth, userId, stable);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;...&#125;</span><br><span class="line">    <span class="keyword">if</span> (holder == <span class="literal">null</span>) &#123;...&#125; <span class="comment">// return null</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Install provider will increment the reference count for us, and break</span></span><br><span class="line">    <span class="comment">// any ties in the race.</span></span><br><span class="line">    holder = installProvider(c, holder, holder.info,</span><br><span class="line">            <span class="literal">true</span> <span class="comment">/*noisy*/</span>, holder.noReleaseNeeded, stable);</span><br><span class="line">    <span class="keyword">return</span> holder.provider;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>尝试调用 <code>acquireExistingProvider</code> 获取已有的 ContentProvider，如果成功则直接返回；</li>
+<li>获取锁，再调用 AMS 的 <code>getContentProvider</code> 方法获取 ContentProviderHolder 对象；</li>
+<li>使用 <code>installProvider</code> 方法安装内容提供程序；</li>
+<li>返回 ContentProviderHolder 的 <code>provider</code> 成员；</li>
+</ol>
+<h4 id="ActivityThread-acquireExistingProvider"><a href="#ActivityThread-acquireExistingProvider" class="headerlink" title="ActivityThread.acquireExistingProvider"></a><code>ActivityThread.acquireExistingProvider</code></h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> IContentProvider <span class="title function_">acquireExistingProvider</span><span class="params">(</span></span><br><span class="line"><span class="params">        Context c, String auth, <span class="type">int</span> userId, <span class="type">boolean</span> stable)</span> &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (mProviderMap) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">ProviderKey</span> <span class="variable">key</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ProviderKey</span>(auth, userId);</span><br><span class="line">        <span class="keyword">final</span> <span class="type">ProviderClientRecord</span> <span class="variable">pr</span> <span class="operator">=</span> mProviderMap.get(key);</span><br><span class="line">        <span class="keyword">if</span> (pr == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">IContentProvider</span> <span class="variable">provider</span> <span class="operator">=</span> pr.mProvider;</span><br><span class="line">        <span class="type">IBinder</span> <span class="variable">jBinder</span> <span class="operator">=</span> provider.asBinder();</span><br><span class="line">        <span class="keyword">if</span> (!jBinder.isBinderAlive()) &#123;...&#125; <span class="comment">// return null</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">// Only increment the ref count if we have one.  If we don&#x27;t then the</span></span><br><span class="line">        <span class="comment">// provider is not reference counted and never needs to be released.</span></span><br><span class="line">        <span class="type">ProviderRefCount</span> <span class="variable">prc</span> <span class="operator">=</span> mProviderRefCountMap.get(jBinder);</span><br><span class="line">        <span class="keyword">if</span> (prc != <span class="literal">null</span>) &#123;</span><br><span class="line">            incProviderRefLocked(prc, stable);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> provider;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>以 <code>auth</code> 和 <code>userId</code> 为 key，从 <code>ArrayMap&lt;ProviderKey, ProviderClientRecord&gt; mProviderMap</code> 中查询已有的记录。</li>
+<li>如果找到记录，获取对应的 Binder 对象，尝试获取并增加引用计数；</li>
+<li>返回 ProviderClientRecord 的 <code>mProvider</code> 成员。</li>
+</ol>
+<p>调用 <code>incProviderPrefLocked</code> 方法增加引用计数时会传入 <code>stable</code> 标志，因为需要 AMS 对 stableProvider 和 unstableProvider 做区别处理，所以需要分别计数。ActivityThread 在增加本地计数时，也会通知 AMS 增加那里的引用计数，以使两边计数保持同步。</p>
+<p>注意不是所有 provider 都需要引用计数，因为有的系统内容提供程序从不需要被释放，也就完全没有引用计数来管理其生命周期。</p>
+<h3 id="ActivityManagerService-getContentProvider"><a href="#ActivityManagerService-getContentProvider" class="headerlink" title="ActivityManagerService.getContentProvider"></a>ActivityManagerService.getContentProvider</h3><p>这个方法调用 <code>getContentProviderImpl</code> 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ContentProviderHolder <span class="title function_">getContentProviderImpl</span><span class="params">(IApplicationThread caller,</span></span><br><span class="line"><span class="params">        String name, IBinder token, <span class="type">int</span> callingUid, String callingPackage, String callingTag,</span></span><br><span class="line"><span class="params">        <span class="type">boolean</span> stable, <span class="type">int</span> userId)</span> &#123;</span><br><span class="line">    ContentProviderRecord cpr;</span><br><span class="line">    <span class="type">ContentProviderConnection</span> <span class="variable">conn</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="type">ProviderInfo</span> <span class="variable">cpi</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">providerRunning</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="type">ProcessRecord</span> <span class="variable">r</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (caller != <span class="literal">null</span>) &#123;</span><br><span class="line">            r = getRecordForAppLocked(caller);</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">checkCrossUser</span> <span class="operator">=</span> <span class="literal">true</span>;</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">        <span class="comment">// First check if this content provider has been published...</span></span><br><span class="line">        cpr = mProviderMap.getProviderByName(name, userId);</span><br><span class="line">        <span class="comment">// If that didn&#x27;t work, check if it exists for user 0 and then</span></span><br><span class="line">        <span class="comment">// verify that it&#x27;s a singleton provider before using it.</span></span><br><span class="line">        <span class="keyword">if</span> (cpr == <span class="literal">null</span> &amp;&amp; userId != UserHandle.USER_SYSTEM) &#123;</span><br><span class="line">            cpr = mProviderMap.getProviderByName(name, UserHandle.USER_SYSTEM);</span><br><span class="line">            <span class="keyword">if</span> (cpr != <span class="literal">null</span>) &#123;</span><br><span class="line">                cpi = cpr.info;</span><br><span class="line">                <span class="keyword">if</span> (isSingleton(cpi.processName, cpi.applicationInfo,</span><br><span class="line">                        cpi.name, cpi.flags)</span><br><span class="line">                        &amp;&amp; isValidSingletonCall(r.uid, cpi.applicationInfo.uid)) &#123;</span><br><span class="line">                    userId = UserHandle.USER_SYSTEM;</span><br><span class="line">                    checkCrossUser = <span class="literal">false</span>;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    cpr = <span class="literal">null</span>;</span><br><span class="line">                    cpi = <span class="literal">null</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (cpr != <span class="literal">null</span> &amp;&amp; cpr.proc != <span class="literal">null</span>) &#123;</span><br><span class="line">            providerRunning = !cpr.proc.killed;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (cpr.proc.killed &amp;&amp; cpr.proc.killedByAm) &#123;...&#125; <span class="comment">// 调用 appDiedLocked() 清理进程</span></span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先检查请求的内容提供程序是否已经发布并记录在 <code>ProviderMap mProviderMap</code> 中，注意这里的<code>mProviderMap</code> 是存在于 AMS 中的 ProviderMap 对象，与 ActivityThread 中的 <code>mProviderMap</code> 不是一个东西。如果当前用户中找不到，再从系统用户(UserId &#x3D; 0)的内容提供程序中寻找合法的单例调用。找到的记录在  <code>ContentProviderRecord cpr</code> 中。</p>
+<p>接下来检查这个记录对应的进程是否还在运行。如果是被 ActivityManager 所杀，就主动清理进程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// synchronized(this)</span></span><br><span class="line"><span class="keyword">if</span> (providerRunning) &#123;</span><br><span class="line">    cpi = cpr.info;</span><br><span class="line">    String msg;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (r != <span class="literal">null</span> &amp;&amp; cpr.canRunHere(r)) &#123;</span><br><span class="line">        ...... <span class="comment">// 权限检查</span></span><br><span class="line">        <span class="type">ContentProviderHolder</span> <span class="variable">holder</span> <span class="operator">=</span> cpr.newHolder(<span class="literal">null</span>);</span><br><span class="line">        holder.provider = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">return</span> holder;</span><br><span class="line">    &#125;</span><br><span class="line">    ...... <span class="comment">// 权限检查</span></span><br><span class="line">    <span class="comment">// In this case the provider instance already exists, so we can</span></span><br><span class="line">    <span class="comment">// return it right away.</span></span><br><span class="line">    conn = incProviderCountLocked(r, cpr, token, callingUid, callingPackage, callingTag,</span><br><span class="line">            stable);</span><br><span class="line">    <span class="keyword">if</span> (conn != <span class="literal">null</span> &amp;&amp; (conn.stableCount+conn.unstableCount) == <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (cpr.proc != <span class="literal">null</span> &amp;&amp; r.setAdj &lt;= ProcessList.PERCEPTIBLE_LOW_APP_ADJ) &#123;</span><br><span class="line">            mProcessList.updateLruProcessLocked(cpr.proc, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...... <span class="comment">// 调整进程 OOM Adj</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果内容提供程序对应进程正在运行，这里分两种情况处理：</p>
+<ol>
+<li>这个 ContentProvider 能在调用者的进程中直接运行，就不建立调用者和当前运行进程的连接，而是使调用者启动自己的 ContentProvider 实例（通过设置 <code>holder.provider = null</code>），向调用者返回 ContentProviderHolder。</li>
+<li>不能在调用者进程运行，需要连接到服务端进程，就获取一个 ContentProviderConnection，同时增加提供程序的引用计数。如果这个连接的总引用计数为 1，需要更新 LruProcess 列表。最后还要调整 OOM Adj。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// synchronized(this)</span></span><br><span class="line"><span class="keyword">if</span> (!providerRunning) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        cpi = AppGlobals.getPackageManager().</span><br><span class="line">            resolveContentProvider(name,</span><br><span class="line">                STOCK_PM_FLAGS | PackageManager.GET_URI_PERMISSION_PATTERNS, userId);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (cpi == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// If the provider is a singleton AND</span></span><br><span class="line">    <span class="comment">// (it&#x27;s a call within the same user || the provider is a</span></span><br><span class="line">    <span class="comment">// privileged app)</span></span><br><span class="line">    <span class="comment">// Then allow connecting to the singleton provider</span></span><br><span class="line">    <span class="type">boolean</span> <span class="variable">singleton</span> <span class="operator">=</span> isSingleton(cpi.processName, cpi.applicationInfo,</span><br><span class="line">            cpi.name, cpi.flags)</span><br><span class="line">            &amp;&amp; isValidSingletonCall(r.uid, cpi.applicationInfo.uid);</span><br><span class="line">    <span class="keyword">if</span> (singleton) &#123;</span><br><span class="line">        userId = UserHandle.USER_SYSTEM;</span><br><span class="line">    &#125;</span><br><span class="line">    cpi.applicationInfo = getAppInfoForUser(cpi.applicationInfo, userId);</span><br><span class="line"></span><br><span class="line">...... <span class="comment">// 检查权限，处理异常情况</span></span><br></pre></td></tr></table></figure>
+
+<p>如果对应进程没有在运行，首先利用 authorities 从 PackageManager 获取 ProviderInfo。处理提供者是系统单例提供者的情况。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">ComponentName</span> <span class="variable">comp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ComponentName</span>(cpi.packageName, cpi.name);</span><br><span class="line">cpr = mProviderMap.getProviderByClass(comp, userId);</span><br><span class="line"><span class="keyword">final</span> <span class="type">boolean</span> <span class="variable">firstClass</span> <span class="operator">=</span> cpr == <span class="literal">null</span>;</span><br><span class="line"><span class="keyword">if</span> (firstClass) &#123;</span><br><span class="line">    ... <span class="comment">// 要求权限确认，return null</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="type">ApplicationInfo</span> <span class="variable">ai</span> <span class="operator">=</span></span><br><span class="line">            AppGlobals.getPackageManager().</span><br><span class="line">                getApplicationInfo(</span><br><span class="line">                        cpi.applicationInfo.packageName,</span><br><span class="line">                        STOCK_PM_FLAGS, userId);</span><br><span class="line">        <span class="keyword">if</span> (ai == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ai = getAppInfoForUser(ai, userId);</span><br><span class="line">        cpr = <span class="keyword">new</span> <span class="title class_">ContentProviderRecord</span>(<span class="built_in">this</span>, cpi, ai, comp, singleton);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;</span><br><span class="line">        <span class="comment">// pm is in same process, this will never happen.</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;...&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>尝试调用 <code>mProviderMap.getProviderByClass</code> 方法获取 ContentProviderRecord。如果获取失败，说明这个 ContentProvider 是第一次运行。调用 <code>PackageManager.getApplicationInfo</code> 获取应用信息，创建 ContentProviderRecord。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (r != <span class="literal">null</span> &amp;&amp; cpr.canRunHere(r)) &#123;</span><br><span class="line">    <span class="comment">// If this is a multiprocess provider, then just return its</span></span><br><span class="line">    <span class="comment">// info and allow the caller to instantiate it.  Only do</span></span><br><span class="line">    <span class="comment">// this if the provider is the same user as the caller&#x27;s</span></span><br><span class="line">    <span class="comment">// process, or can run as root (so can be in any process).</span></span><br><span class="line">    <span class="keyword">return</span> cpr.newHolder(<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果内容提供程序是多进程的，只需要返回一个新的 ContentProviderHolder，让调用者去初始化其余内容。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This is single process, and our app is now connecting to it.</span></span><br><span class="line"><span class="comment">// See if we are already in the process of launching this</span></span><br><span class="line"><span class="comment">// provider.</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">int</span> <span class="variable">N</span> <span class="operator">=</span> mLaunchingProviders.size();</span><br><span class="line"><span class="type">int</span> i;</span><br><span class="line"><span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (mLaunchingProviders.get(i) == cpr) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// If the provider is not already being launched, then get it</span></span><br><span class="line"><span class="comment">// started.</span></span><br><span class="line"><span class="keyword">if</span> (i &gt;= N) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// Content provider is now in use, its package can&#x27;t be stopped.</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            AppGlobals.getPackageManager().setPackageStoppedState(</span><br><span class="line">                    cpr.appInfo.packageName, <span class="literal">false</span>, userId);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalArgumentException e) &#123;...&#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Use existing process if already started</span></span><br><span class="line">        <span class="type">ProcessRecord</span> <span class="variable">proc</span> <span class="operator">=</span> getProcessRecordLocked(</span><br><span class="line">                cpi.processName, cpr.appInfo.uid, <span class="literal">false</span>);</span><br><span class="line">        <span class="keyword">if</span> (proc != <span class="literal">null</span> &amp;&amp; proc.thread != <span class="literal">null</span> &amp;&amp; !proc.killed) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!proc.pubProviders.containsKey(cpi.name)) &#123;</span><br><span class="line">                proc.pubProviders.put(cpi.name, cpr);</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    proc.thread.scheduleInstallProvider(cpi);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            proc = startProcessLocked(cpi.processName,</span><br><span class="line">                    cpr.appInfo, <span class="literal">false</span>, <span class="number">0</span>,</span><br><span class="line">                    <span class="keyword">new</span> <span class="title class_">HostingRecord</span>(<span class="string">&quot;content provider&quot;</span>,</span><br><span class="line">                    <span class="keyword">new</span> <span class="title class_">ComponentName</span>(cpi.applicationInfo.packageName,</span><br><span class="line">                            cpi.name)), <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">false</span>);</span><br><span class="line">            <span class="keyword">if</span> (proc == <span class="literal">null</span>) &#123;...&#125; <span class="comment">// return null</span></span><br><span class="line">        &#125;</span><br><span class="line">        cpr.launchingApp = proc;</span><br><span class="line">        mLaunchingProviders.add(cpr);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;...&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>尝试启动内容提供程序。</p>
+<p>首先遍历 <code>ArrayList&lt;ContentProviderRecord&gt; mLaunchingProviders</code>，检查之前是否已经安排启动了该内容提供程序。</p>
+<p>如果没有找到，尝试启动之：</p>
+<ol>
+<li>调用 <code>PackageManager.setStoppedState</code> 方法，使应用不能被停止；</li>
+<li>尝试获取应用的 ProcessRecord，如果获取成功，调用其 <code>ActivityThread.scheduleInstallProvider</code> 方法；</li>
+<li>如果获取失败，说明应用进程没有启动，调用 <code>startProcessLocked</code> 方法启动该进程</li>
+<li>设置 <code>cpr</code> 的 <code>launchingApp</code> 变量，将其加入到 <code>mLaunchingProviders</code> 中。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">    <span class="comment">// Make sure the provider is published (the same provider class</span></span><br><span class="line">    <span class="comment">// may be published under multiple names).</span></span><br><span class="line">    <span class="keyword">if</span> (firstClass) &#123;</span><br><span class="line">        mProviderMap.putProviderByClass(comp, cpr);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    mProviderMap.putProviderByName(name, cpr);</span><br><span class="line">    conn = incProviderCountLocked(r, cpr, token, callingUid, callingPackage, callingTag,</span><br><span class="line">            stable);</span><br><span class="line">    <span class="keyword">if</span> (conn != <span class="literal">null</span>) &#123;</span><br><span class="line">        conn.waiting = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>如果是首次启动，向 <code>mProviderMap</code> 添加 ComponentName 记录；</li>
+<li>向 <code>mProviderMap</code> 添加 authorities 的记录；</li>
+<li>尝试获取 ContentProviderConnection，设定其 <code>waiting</code> 标志为 true。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">    ...</span><br><span class="line">    <span class="comment">// Wait for the provider to be published...</span></span><br><span class="line">    <span class="keyword">final</span> <span class="type">long</span> <span class="variable">timeout</span> <span class="operator">=</span> SystemClock.uptimeMillis() + CONTENT_PROVIDER_WAIT_TIMEOUT;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">timedOut</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">synchronized</span> (cpr) &#123;</span><br><span class="line">        <span class="keyword">while</span> (cpr.provider == <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (cpr.launchingApp == <span class="literal">null</span>) &#123;... <span class="keyword">return</span> <span class="literal">null</span>;&#125;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">final</span> <span class="type">long</span> <span class="variable">wait</span> <span class="operator">=</span> Math.max(<span class="number">0L</span>, timeout - SystemClock.uptimeMillis());</span><br><span class="line">                ...</span><br><span class="line">                <span class="keyword">if</span> (conn != <span class="literal">null</span>) &#123;</span><br><span class="line">                    conn.waiting = <span class="literal">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">                cpr.wait(wait);</span><br><span class="line">                <span class="keyword">if</span> (cpr.provider == <span class="literal">null</span>) &#123;</span><br><span class="line">                    timedOut = <span class="literal">true</span>;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException ex) &#123;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                <span class="keyword">if</span> (conn != <span class="literal">null</span>) &#123;</span><br><span class="line">                    conn.waiting = <span class="literal">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (timedOut) &#123;... <span class="keyword">return</span> <span class="literal">null</span>;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> cpr.newHolder(conn);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>等待内容提供程序启动完成并发布。当前设置的超时时间 <code>CONTENT_PROVIDER_WAIT_TIMEOUT = 20000</code>，单位毫秒，也就是 20 秒。<code>cpr</code> 将等待 <code>cpr.provider</code> 就绪，直到超时时间已过或 <code>publishContentProviders</code> 方法调用 <code>notify</code> 唤醒线程。如果超时时间已过，就返回 <code>null</code>。</p>
+<p>最后，<code>cpr</code> 以获取的 conn(可能为 null)创建 ContentProviderHolder 返回给调用者。</p>
+<h2 id="与-ContentProvider-交互过程"><a href="#与-ContentProvider-交互过程" class="headerlink" title="与 ContentProvider 交互过程"></a>与 ContentProvider 交互过程</h2><p><img src="/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/transact.svg" alt="ContentResolver 交互过程"></p>
+<p>ContentResolver 与 ContentProvider 实现了相同的接口 ContentInterface，但 IPC 通信时调用的是 IContentProvider 这套接口。</p>
+<p>ContentResolver 通过 <code>acquireProvider</code> 方法获取的 IContentProvider 接口，得到的实际上是 ContentProviderPorxy 对象。我们来看这个代理如何处理 <code>insert</code> 请求：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// method of class ContentProviderProxy</span></span><br><span class="line"><span class="keyword">public</span> Uri <span class="title function_">insert</span><span class="params">(String callingPkg, Uri url, ContentValues values)</span> <span class="keyword">throws</span> RemoteException</span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">Parcel</span> <span class="variable">data</span> <span class="operator">=</span> Parcel.obtain();</span><br><span class="line">    <span class="type">Parcel</span> <span class="variable">reply</span> <span class="operator">=</span> Parcel.obtain();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        data.writeInterfaceToken(IContentProvider.descriptor);</span><br><span class="line"></span><br><span class="line">        data.writeString(callingPkg);</span><br><span class="line">        url.writeToParcel(data, <span class="number">0</span>);</span><br><span class="line">        values.writeToParcel(data, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        mRemote.transact(IContentProvider.INSERT_TRANSACTION, data, reply, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">        DatabaseUtils.readExceptionFromParcel(reply);</span><br><span class="line">        <span class="type">Uri</span> <span class="variable">out</span> <span class="operator">=</span> Uri.CREATOR.createFromParcel(reply);</span><br><span class="line">        <span class="keyword">return</span> out;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        data.recycle();</span><br><span class="line">        reply.recycle();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代理对象把数据打包发送到服务端对象处理，在这里是 ContentProviderNative。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// onTransact method of abstract class ContentProviderNative</span></span><br><span class="line"><span class="keyword">case</span> INSERT_TRANSACTION:</span><br><span class="line">&#123;</span><br><span class="line">    data.enforceInterface(IContentProvider.descriptor);</span><br><span class="line">    <span class="type">String</span> <span class="variable">callingPkg</span> <span class="operator">=</span> data.readString();</span><br><span class="line">    <span class="type">Uri</span> <span class="variable">url</span> <span class="operator">=</span> Uri.CREATOR.createFromParcel(data);</span><br><span class="line">    <span class="type">ContentValues</span> <span class="variable">values</span> <span class="operator">=</span> ContentValues.CREATOR.createFromParcel(data);</span><br><span class="line"></span><br><span class="line">    <span class="type">Uri</span> <span class="variable">out</span> <span class="operator">=</span> insert(callingPkg, url, values);</span><br><span class="line">    reply.writeNoException();</span><br><span class="line">    Uri.writeToParcel(reply, out);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>收到数据后调用 IContentProvider 接口的 <code>insert</code> 方法，其实现位于 Transport 类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// method of class Transport</span></span><br><span class="line"><span class="keyword">public</span> Uri <span class="title function_">insert</span><span class="params">(String callingPkg, Uri uri, ContentValues initialValues)</span> &#123;</span><br><span class="line">    ...... <span class="comment">// 验证 URI 和权限</span></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> maybeAddUserId(mInterface.insert(uri, initialValues), userId);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException e) &#123; ...</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;...&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这里调用了 <code>ContentInterface mInterface</code> 接口的 <code>insert</code> 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// method of abstract class ContentProvider</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">setTransportLoggingEnabled</span><span class="params">(<span class="type">boolean</span> enabled)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (enabled) &#123;</span><br><span class="line">        mTransport.mInterface = <span class="keyword">new</span> <span class="title class_">LoggingContentInterface</span>(getClass().getSimpleName(), <span class="built_in">this</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        mTransport.mInterface = <span class="built_in">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Transport 类作为 ContentProvider 的成员 <code>mTransport</code> 实例化。ContentProvider 在初始化时，会设置其 <code>mInterface</code> 成员为自身(<code>this</code>)。终于，服务端 ContentProvider 中的各种方法可以被客户端所使用。</p>
+<h2 id="ContentProvider-初始化过程"><a href="#ContentProvider-初始化过程" class="headerlink" title="ContentProvider 初始化过程"></a>ContentProvider 初始化过程</h2><p>应用的内容提供程序初始化有两个入口。</p>
+<ol>
+<li>应用进程已存在时，由 AMS 远程调用 ActivityThread 进行实例化；</li>
+<li>应用进程启动时，进行批量安装；</li>
+</ol>
+<h3 id="AMS-发起的-ContentProvider-安装"><a href="#AMS-发起的-ContentProvider-安装" class="headerlink" title="AMS 发起的 ContentProvider 安装"></a>AMS 发起的 ContentProvider 安装</h3><p><img src="/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/scheduleInstallProvider.svg" alt="AMS 发起 ContentProvider 安装时序图"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">scheduleInstallProvider</span><span class="params">(ProviderInfo provider)</span> &#123;</span><br><span class="line">    sendMessage(H.INSTALL_PROVIDER, provider);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// handleMessage</span></span><br><span class="line"><span class="keyword">case</span> INSTALL_PROVIDER:</span><br><span class="line">    handleInstallProvider((ProviderInfo) msg.obj);</span><br><span class="line">    <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+
+<p>AMS 首先调用 <code>ActivityThread.ApplicationThread.scheduleInstallProvider</code> 这个方法向 ActivityThread 的 Handler 发送消息以安排 provider 的安装。Handler 收到消息后启动 <code>handleInstallProvider</code> 方法。这个方法进一步调用 <code>installContentProviders</code> 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">installContentProviders</span><span class="params">(</span></span><br><span class="line"><span class="params">        Context context, List&lt;ProviderInfo&gt; providers)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> ArrayList&lt;ContentProviderHolder&gt; results = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (ProviderInfo cpi : providers) &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="type">ContentProviderHolder</span> <span class="variable">cph</span> <span class="operator">=</span> installProvider(context, <span class="literal">null</span>, cpi,</span><br><span class="line">                <span class="literal">false</span> <span class="comment">/*noisy*/</span>, <span class="literal">true</span> <span class="comment">/*noReleaseNeeded*/</span>, <span class="literal">true</span> <span class="comment">/*stable*/</span>);</span><br><span class="line">        <span class="keyword">if</span> (cph != <span class="literal">null</span>) &#123;</span><br><span class="line">            cph.noReleaseNeeded = <span class="literal">true</span>;</span><br><span class="line">            results.add(cph);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        ActivityManager.getService().publishContentProviders(</span><br><span class="line">            getApplicationThread(), results);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (RemoteException ex) &#123;...&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法遍历接收到的 ProviderInfo 列表，对每个 ProviderInfo 调用 <code>installProvider</code> 方法。随后，调用 AMS 的 <code>publishContentProviders</code> 方法，发布成功安装的 ContentProvider。</p>
+<h3 id="应用进程启动时的-ContentProvider-安装"><a href="#应用进程启动时的-ContentProvider-安装" class="headerlink" title="应用进程启动时的 ContentProvider 安装"></a>应用进程启动时的 ContentProvider 安装</h3><p><img src="/images/2020-02-18-ContentProvider-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/startActivity.svg" alt="进程启动时序图"></p>
+<p>进程启动完成时，会调用 AMS 的 <code>attachApplication</code> 方法，进一步调用 <code>installContentProviders</code> 方法，将清单声明在进程启动时安装的 ContentProvider 批量安装。</p>
+<h3 id="ActivityThread-installProvider"><a href="#ActivityThread-installProvider" class="headerlink" title="ActivityThread.installProvider"></a><code>ActivityThread.installProvider</code></h3><p>这一方法负责安装内容提供程序。根据官方文档，同一进程或来自 system server 的内容提供程序可以永久安装，因此设置 <code>noReleaseNeeded</code> 为 true。其他内容提供程序使用引用计数来管理其生命周期。这个方法还会检测当前内容提供程序是否已经安装。如果已经安装，就增加引用计数，返回已有的内容提供程序。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ContentProviderHolder <span class="title function_">installProvider</span><span class="params">(Context context,</span></span><br><span class="line"><span class="params">        ContentProviderHolder holder, ProviderInfo info,</span></span><br><span class="line"><span class="params">        <span class="type">boolean</span> noisy, <span class="type">boolean</span> noReleaseNeeded, <span class="type">boolean</span> stable)</span> &#123;</span><br><span class="line">    <span class="type">ContentProvider</span> <span class="variable">localProvider</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    IContentProvider provider;</span><br><span class="line">    <span class="keyword">if</span> (holder == <span class="literal">null</span> || holder.provider == <span class="literal">null</span>) &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="type">Context</span> <span class="variable">c</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="type">ApplicationInfo</span> <span class="variable">ai</span> <span class="operator">=</span> info.applicationInfo;</span><br><span class="line">        <span class="keyword">if</span> (context.getPackageName().equals(ai.packageName)) &#123;</span><br><span class="line">            c = context; <span class="comment">// ContentProvider 在主进程</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (mInitialApplication != <span class="literal">null</span> &amp;&amp;</span><br><span class="line">                mInitialApplication.getPackageName().equals(ai.packageName)) &#123;</span><br><span class="line">            c = mInitialApplication; <span class="comment">// ContentProvider 在其他进程</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123; <span class="comment">// 尝试就地创建请求的 Context 对象</span></span><br><span class="line">                c = context.createPackageContext(ai.packageName,</span><br><span class="line">                        Context.CONTEXT_INCLUDE_CODE);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (PackageManager.NameNotFoundException e) &#123;</span><br><span class="line">                <span class="comment">// Ignore</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;...; <span class="keyword">return</span> <span class="literal">null</span>;&#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (info.splitName != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                c = c.createContextForSplit(info.splitName);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (NameNotFoundException e) &#123;...&#125; <span class="comment">// throw RuntimeException</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">final</span> java.lang.<span class="type">ClassLoader</span> <span class="variable">cl</span> <span class="operator">=</span> c.getClassLoader();</span><br><span class="line">            <span class="type">LoadedApk</span> <span class="variable">packageInfo</span> <span class="operator">=</span> peekPackageInfo(ai.packageName, <span class="literal">true</span>);</span><br><span class="line">            <span class="keyword">if</span> (packageInfo == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="comment">// System startup case.</span></span><br><span class="line">                packageInfo = getSystemContext().mPackageInfo;</span><br><span class="line">            &#125;</span><br><span class="line">            localProvider = packageInfo.getAppFactory()</span><br><span class="line">                    .instantiateProvider(cl, info.name);</span><br><span class="line">            provider = localProvider.getIContentProvider();</span><br><span class="line">            <span class="keyword">if</span> (provider == <span class="literal">null</span>) &#123;...; <span class="keyword">return</span> <span class="literal">null</span>;&#125;</span><br><span class="line">            <span class="comment">// XXX Need to create the correct context for this provider.</span></span><br><span class="line">            localProvider.attachInfo(c, info);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (java.lang.Exception e) &#123;...; <span class="keyword">return</span> <span class="literal">null</span>;&#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        provider = holder.provider;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这一节获取 IContentProvider。如果 <code>holder.provider</code> 不为空，则直接使用。否则：</p>
+<ol>
+<li>获取 ContentProvider 所在的 Context 对象；</li>
+<li>创建 ContentProvider 实例，获取对应的 IContentProvider 接口；</li>
+<li>调用 <code>ContentProvider.attachInfo</code> 方法，该方法调用 <code>onCreate</code> 方法；</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">    ContentProviderHolder retHolder;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">synchronized</span> (mProviderMap) &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="type">IBinder</span> <span class="variable">jBinder</span> <span class="operator">=</span> provider.asBinder();</span><br><span class="line">        <span class="keyword">if</span> (localProvider != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="type">ComponentName</span> <span class="variable">cname</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ComponentName</span>(info.packageName, info.name);</span><br><span class="line">            <span class="type">ProviderClientRecord</span> <span class="variable">pr</span> <span class="operator">=</span> mLocalProvidersByName.get(cname);</span><br><span class="line">            <span class="keyword">if</span> (pr != <span class="literal">null</span>) &#123;</span><br><span class="line">                ...</span><br><span class="line">                provider = pr.mProvider;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                holder = <span class="keyword">new</span> <span class="title class_">ContentProviderHolder</span>(info);</span><br><span class="line">                holder.provider = provider;</span><br><span class="line">                holder.noReleaseNeeded = <span class="literal">true</span>;</span><br><span class="line">                pr = installProviderAuthoritiesLocked(provider, localProvider, holder);</span><br><span class="line">                mLocalProviders.put(jBinder, pr);</span><br><span class="line">                mLocalProvidersByName.put(cname, pr);</span><br><span class="line">            &#125;</span><br><span class="line">            retHolder = pr.mHolder;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="type">ProviderRefCount</span> <span class="variable">prc</span> <span class="operator">=</span> mProviderRefCountMap.get(jBinder);</span><br><span class="line">            <span class="keyword">if</span> (prc != <span class="literal">null</span>) &#123;</span><br><span class="line">                ...</span><br><span class="line">                <span class="comment">// We need to transfer our new reference to the existing</span></span><br><span class="line">                <span class="comment">// ref count, releasing the old one...  but only if</span></span><br><span class="line">                <span class="comment">// release is needed (that is, it is not running in the</span></span><br><span class="line">                <span class="comment">// system process).</span></span><br><span class="line">                <span class="keyword">if</span> (!noReleaseNeeded) &#123;</span><br><span class="line">                    incProviderRefLocked(prc, stable);</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        ActivityManager.getService().removeContentProvider(</span><br><span class="line">                                holder.connection, stable);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">                        <span class="comment">//do nothing content provider object is dead any way</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="type">ProviderClientRecord</span> <span class="variable">client</span> <span class="operator">=</span> installProviderAuthoritiesLocked(</span><br><span class="line">                        provider, localProvider, holder);</span><br><span class="line">                <span class="keyword">if</span> (noReleaseNeeded) &#123;</span><br><span class="line">                    prc = <span class="keyword">new</span> <span class="title class_">ProviderRefCount</span>(holder, client, <span class="number">1000</span>, <span class="number">1000</span>);</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    prc = stable</span><br><span class="line">                            ? <span class="keyword">new</span> <span class="title class_">ProviderRefCount</span>(holder, client, <span class="number">1</span>, <span class="number">0</span>)</span><br><span class="line">                            : <span class="keyword">new</span> <span class="title class_">ProviderRefCount</span>(holder, client, <span class="number">0</span>, <span class="number">1</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                mProviderRefCountMap.put(jBinder, prc);</span><br><span class="line">            &#125;</span><br><span class="line">            retHolder = prc.holder;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> retHolder;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这一节获取 ContentProviderHolder。</p>
+<p>如果 <code>localProvider != null</code>，说明之前走了 <code>holder.provider == null</code> 的分支，获取了本地的 ContentProvider 实例，那么：</p>
+<ol>
+<li>尝试从 <code>mLocalProvidersByName</code> 查询对应的 ProviderClientRecord，如果找到，则直接返回其 mProvider 成员；</li>
+<li>如果没有找到，创建新的 ContentProviderHolder 对象，存入所需信息，调用<code>installProviderAuthoritiesLocked</code> 注册；</li>
+</ol>
+<p>否则，说明引用了已有的 ContentProvider：</p>
+<ol>
+<li>尝试从 <code>mProviderRefCountMap</code> 查询对应的 ProviderRefCount，如果找到，更新其引用计数；</li>
+<li>如果没有找到，调用 <code>installProviderAuthoritiesLocked</code> 注册，创建新的引用计数，存入  <code>mProviderRefCountMap</code>；</li>
+<li>使用ProviderRefCount 的 <code>holder</code> 成员作为返回的对象。</li>
+</ol>
+<p>最后返回获取的 ContentProviderHolder。</p>
+<h4 id="installProviderAuthoritiesLocked"><a href="#installProviderAuthoritiesLocked" class="headerlink" title="installProviderAuthoritiesLocked"></a><code>installProviderAuthoritiesLocked</code></h4><p>创建新的 ProviderClientRecord 对象，将其保存到 <code>ProviderMap mProviderMap</code> 中。</p>
+<h3 id="AMS-publishContentProviders"><a href="#AMS-publishContentProviders" class="headerlink" title="AMS.publishContentProviders"></a><code>AMS.publishContentProviders</code></h3><p>这个方法将收到的 ContentProviderHolder 对应的 ContentProviderRecord 保存到 <code>mProviderMap</code> 中，完成其初始化，并调用 <code>notifyAll</code> 唤醒之前在 <code>getContentProviderImpl</code> 方法等待其就绪的线程。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title function_">publishContentProviders</span><span class="params">(IApplicationThread caller,</span></span><br><span class="line"><span class="params">        List&lt;ContentProviderHolder&gt; providers)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (providers == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="built_in">this</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="type">ProcessRecord</span> <span class="variable">r</span> <span class="operator">=</span> getRecordForAppLocked(caller);</span><br><span class="line">        <span class="keyword">if</span> (r == <span class="literal">null</span>) &#123;<span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">SecurityException</span>(...);&#125;</span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">final</span> <span class="type">int</span> <span class="variable">N</span> <span class="operator">=</span> providers.size();</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line">            <span class="type">ContentProviderHolder</span> <span class="variable">src</span> <span class="operator">=</span> providers.get(i);</span><br><span class="line">            <span class="keyword">if</span> (src == <span class="literal">null</span> || src.info == <span class="literal">null</span> || src.provider == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="type">ContentProviderRecord</span> <span class="variable">dst</span> <span class="operator">=</span> r.pubProviders.get(src.info.name);</span><br><span class="line">            <span class="keyword">if</span> (dst != <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="type">ComponentName</span> <span class="variable">comp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ComponentName</span>(dst.info.packageName, dst.info.name);</span><br><span class="line">                mProviderMap.putProviderByClass(comp, dst);</span><br><span class="line">                String names[] = dst.info.authority.split(<span class="string">&quot;;&quot;</span>);</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> <span class="number">0</span>; j &lt; names.length; j++) &#123;</span><br><span class="line">                    mProviderMap.putProviderByName(names[j], dst);</span><br><span class="line">                &#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先获取调用者的 ProcessRecord。</p>
+<p>接下来遍历 ContentProviderHolder 的列表，对于每一个 ContentProviderHolder:</p>
+<ol>
+<li>获取 ProcessRecord 的 <code>pubProviders</code> 成员中对应的 ContentProviderRecord 到 <code>dst</code>；</li>
+<li>保存 <code>dst</code> 到 <code>mProviderMap</code>；</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">                <span class="type">int</span> <span class="variable">launchingCount</span> <span class="operator">=</span> mLaunchingProviders.size();</span><br><span class="line">                <span class="type">int</span> j;</span><br><span class="line">                <span class="type">boolean</span> <span class="variable">wasInLaunchingProviders</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">                <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; launchingCount; j++) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (mLaunchingProviders.get(j) == dst) &#123;</span><br><span class="line">                        mLaunchingProviders.remove(j);</span><br><span class="line">                        wasInLaunchingProviders = <span class="literal">true</span>;</span><br><span class="line">                        j--;</span><br><span class="line">                        launchingCount--;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (wasInLaunchingProviders) &#123;</span><br><span class="line">                    mHandler.removeMessages(CONTENT_PROVIDER_PUBLISH_TIMEOUT_MSG, r);</span><br><span class="line">                &#125;</span><br><span class="line">                ... <span class="comment">// 奇怪的 patch</span></span><br><span class="line">                <span class="keyword">synchronized</span> (dst) &#123;</span><br><span class="line">                    dst.provider = src.provider;</span><br><span class="line">                    dst.setProcess(r);</span><br><span class="line">                    dst.notifyAll();</span><br><span class="line">                &#125;</span><br><span class="line">                updateOomAdjLocked(r, <span class="literal">true</span>, OomAdjuster.OOM_ADJ_REASON_GET_PROVIDER);</span><br><span class="line">                maybeUpdateProviderUsageStatsLocked(r, src.info.packageName,</span><br><span class="line">                        src.info.authority);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Binder.restoreCallingIdentity(origId);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>检查 <code>dst</code> 是否在 <code>mLaunchingProviders</code> 中，如果是，就从该列表中去除，并按需从 AMS 的 Handler 中拆除发布内容提供程序超时的“定时炸弹”消息，这个“炸弹”是在 <code>attachApplicationLocked</code> 方法中安装的；</li>
+<li>设置 <code>dst</code> 的 <code>provider</code> 和 <code>proc</code> 属性；</li>
+<li><strong>调用 <code>notifyAll</code> 唤醒之前等待该 ContentProviderRecord 就绪的线程</strong></li>
+<li>调整应用的 OOM Adj。</li>
+</ol>
+<h2 id="ContentProvider-服务端被杀牵连客户端的过程"><a href="#ContentProvider-服务端被杀牵连客户端的过程" class="headerlink" title="ContentProvider 服务端被杀牵连客户端的过程"></a>ContentProvider 服务端被杀牵连客户端的过程</h2><p>在 <code>AMS.attachApplicationLocked</code> 方法中，添加了 ActivityThread 对象的死亡回调。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="type">AppDeathRecipient</span> <span class="variable">adr</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">AppDeathRecipient</span>(</span><br><span class="line">            app, pid, thread);</span><br><span class="line">    thread.asBinder().linkToDeath(adr, <span class="number">0</span>);</span><br><span class="line">    app.deathRecipient = adr;</span><br><span class="line">&#125; <span class="keyword">catch</span> (RemoteException e) &#123;...&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个 AppDeathRecipient 的实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">AppDeathRecipient</span> <span class="keyword">implements</span> <span class="title class_">IBinder</span>.DeathRecipient &#123;</span><br><span class="line">    <span class="keyword">final</span> ProcessRecord mApp;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">int</span> mPid;</span><br><span class="line">    <span class="keyword">final</span> IApplicationThread mAppThread;</span><br><span class="line">    ......</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">binderDied</span><span class="params">()</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="keyword">synchronized</span>(ActivityManagerService.<span class="built_in">this</span>) &#123;</span><br><span class="line">            appDiedLocked(mApp, mPid, mAppThread, <span class="literal">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到调用了 <code>appDiedLocked</code> 方法。继续追踪：<br> <code>appDiedLocked -&gt; handleAppDiedLocked -&gt; cleanUpApplicationRecordLocked</code></p>
+<h3 id="cleanUpApplicationRecordLocked"><a href="#cleanUpApplicationRecordLocked" class="headerlink" title="cleanUpApplicationRecordLocked"></a><code>cleanUpApplicationRecordLocked</code></h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">......</span><br><span class="line"><span class="comment">// Remove published content providers.</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> app.pubProviders.size() - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line">    <span class="type">ContentProviderRecord</span> <span class="variable">cpr</span> <span class="operator">=</span> app.pubProviders.valueAt(i);</span><br><span class="line">    <span class="keyword">final</span> <span class="type">boolean</span> <span class="variable">always</span> <span class="operator">=</span> app.bad || !allowRestart;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">inLaunching</span> <span class="operator">=</span> removeDyingProviderLocked(app, cpr, always);</span><br><span class="line">    <span class="keyword">if</span> ((inLaunching || always) &amp;&amp; cpr.hasConnectionOrHandle()) &#123;</span><br><span class="line">        <span class="comment">// We left the provider in the launching list, need to</span></span><br><span class="line">        <span class="comment">// restart it.</span></span><br><span class="line">        restart = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cpr.provider = <span class="literal">null</span>;</span><br><span class="line">    cpr.setProcess(<span class="literal">null</span>);</span><br><span class="line">&#125;</span><br><span class="line">app.pubProviders.clear();</span><br><span class="line"></span><br><span class="line"><span class="comment">// Take care of any launching providers waiting for this process.</span></span><br><span class="line"><span class="keyword">if</span> (cleanupAppInLaunchingProvidersLocked(app, <span class="literal">false</span>)) &#123;</span><br><span class="line">    restart = <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Unregister from connected content providers.</span></span><br><span class="line"><span class="keyword">if</span> (!app.conProviders.isEmpty()) &#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> app.conProviders.size() - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line">        <span class="type">ContentProviderConnection</span> <span class="variable">conn</span> <span class="operator">=</span> app.conProviders.get(i);</span><br><span class="line">        conn.provider.connections.remove(conn);</span><br><span class="line">        stopAssociationLocked(app.uid, app.processName, conn.provider.uid,</span><br><span class="line">                conn.provider.appInfo.longVersionCode, conn.provider.name,</span><br><span class="line">                conn.provider.info.processName);</span><br><span class="line">    &#125;</span><br><span class="line">    app.conProviders.clear();</span><br><span class="line">&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>首先移除已经发布的 ContentProvider，如有必要杀掉客户端进程；</li>
+<li>清理正在启动且有客户端正在等待的 ContentProvider；</li>
+<li>从关联的 ContentProviderConnection 中注销；</li>
+</ol>
+<h3 id="removeDyingProviderLocked"><a href="#removeDyingProviderLocked" class="headerlink" title="removeDyingProviderLocked"></a><code>removeDyingProviderLocked</code></h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="type">boolean</span> <span class="title function_">removeDyingProviderLocked</span><span class="params">(ProcessRecord proc,</span></span><br><span class="line"><span class="params">        ContentProviderRecord cpr, <span class="type">boolean</span> always)</span> &#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">boolean</span> <span class="variable">inLaunching</span> <span class="operator">=</span> mLaunchingProviders.contains(cpr);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!inLaunching || always) &#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (cpr) &#123;</span><br><span class="line">            cpr.launchingApp = <span class="literal">null</span>;</span><br><span class="line">            cpr.notifyAll();</span><br><span class="line">        &#125;</span><br><span class="line">        mProviderMap.removeProviderByClass(cpr.name, UserHandle.getUserId(cpr.uid));</span><br><span class="line">        String names[] = cpr.info.authority.split(<span class="string">&quot;;&quot;</span>);</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> <span class="number">0</span>; j &lt; names.length; j++) &#123;</span><br><span class="line">            mProviderMap.removeProviderByName(names[j], UserHandle.getUserId(cpr.uid));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> cpr.connections.size() - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line">        <span class="type">ContentProviderConnection</span> <span class="variable">conn</span> <span class="operator">=</span> cpr.connections.get(i);</span><br><span class="line">        <span class="keyword">if</span> (conn.waiting) &#123;</span><br><span class="line">            <span class="comment">// If this connection is waiting for the provider, then we don&#x27;t</span></span><br><span class="line">            <span class="comment">// need to mess with its process unless we are always removing</span></span><br><span class="line">            <span class="comment">// or for some reason the provider is not currently launching.</span></span><br><span class="line">            <span class="keyword">if</span> (inLaunching &amp;&amp; !always) &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="type">ProcessRecord</span> <span class="variable">capp</span> <span class="operator">=</span> conn.client;</span><br><span class="line">        conn.dead = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (conn.stableCount &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!capp.isPersistent() &amp;&amp; capp.thread != <span class="literal">null</span></span><br><span class="line">                    &amp;&amp; capp.pid != <span class="number">0</span></span><br><span class="line">                    &amp;&amp; capp.pid != MY_PID) &#123;</span><br><span class="line">                capp.kill(..., <span class="literal">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (capp.thread != <span class="literal">null</span> &amp;&amp; conn.provider.provider != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                capp.thread.unstableProviderDied(conn.provider.provider.asBinder());</span><br><span class="line">            &#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// In the protocol here, we don&#x27;t expect the client to correctly</span></span><br><span class="line">            <span class="comment">// clean up this connection, we&#x27;ll just remove it.</span></span><br><span class="line">            cpr.connections.remove(i);</span><br><span class="line">            <span class="keyword">if</span> (conn.client.conProviders.remove(conn)) &#123;</span><br><span class="line">                stopAssociationLocked(capp.uid, capp.processName, cpr.uid,</span><br><span class="line">                        cpr.appInfo.longVersionCode, cpr.name, cpr.info.processName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (inLaunching &amp;&amp; always) &#123;</span><br><span class="line">        mLaunchingProviders.remove(cpr);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> inLaunching;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>如果这个内容提供程序当前正在运行，调用 <code>notifyAll</code> （TODO)，从 mProviderMap 移除记录；</li>
+<li>遍历所有 ContentProviderConnection：<ol>
+<li>如果当前连接正在等待提供程序就绪，并且不是必须要移除连接的情况，就跳过处理该连接；</li>
+<li>否则，获取当前连接的客户端程序 ProcessRecord，如果其 <code>stableCount &gt; 0</code>，不是常驻进程，且正在运行，就调用 <code>ProcessRecord.kill</code> 方法杀掉该进程；</li>
+<li>否则（没有 stableConnection），调用 <code>ApplicationThread.unstableProviderDied</code> 方法，再从 ContentProviderRecord 中移除该连接；</li>
+</ol>
+</li>
+<li>按需移除 <code>mLaunchingProviders</code> 中相应记录，返回 <code>inLaunching</code> 状态给调用者。</li>
+</ol>
+<h1 id="Q-A"><a href="#Q-A" class="headerlink" title="Q&amp;A"></a>Q&amp;A</h1><p>Q: <strong>ContentProviderConnection中stableCount与unstableCount的作用是什么？</strong></p>
+<p>A： <code>stableCount</code> 与 <code>unstableCount</code> 分别记录这个 ContentProviderConnection 中使用 <code>stableProvider</code> 与 <code>unstableProvider</code> 的个数。如果 <code>stableCount &gt; 0</code>，服务端进程死亡时，AMS 就会杀掉对应的客户端进程，以确保数据一致性。</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><ol>
+<li>ContentProvider | Android 开发者, <a target="_blank" rel="noopener" href="https://developer.android.com/guide/topics/providers/content-providers">https://developer.android.com/guide/topics/providers/content-providers</a></li>
+<li>Android之ContentProvider源码解析, <a target="_blank" rel="noopener" href="https://juejin.im/post/5c789ebee51d453f0d4413a2">https://juejin.im/post/5c789ebee51d453f0d4413a2</a></li>
+<li>理解ContentProvider原理, <a target="_blank" rel="noopener" href="http://gityuan.com/2016/07/30/content-provider/">http://gityuan.com/2016/07/30/content-provider/</a></li>
+<li>ContentProvider流程解析, <a target="_blank" rel="noopener" href="https://www.jianshu.com/p/f01357e6bb32">https://www.jianshu.com/p/f01357e6bb32</a></li>
+<li>从源码角度看ContentProvider, <a target="_blank" rel="noopener" href="https://juejin.im/post/5a0c611f6fb9a0450b65ee7c">https://juejin.im/post/5a0c611f6fb9a0450b65ee7c</a></li>
+</ol>
+<h1 id="源代码"><a href="#源代码" class="headerlink" title="源代码"></a>源代码</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">frameworks/base/core/java/android/content/ContentProvider.java</span><br><span class="line">frameworks/base/core/java/android/content/ContentResolver.java</span><br><span class="line">frameworks/base/core/java/android/content/IContentProvider.java</span><br><span class="line"></span><br><span class="line">frameworks/base/core/java/android/content/pm/ProviderInfo.java</span><br><span class="line">frameworks/base/core/java/android/content/pm/PackageManager.java</span><br><span class="line"></span><br><span class="line">frameworks/base/core/java/android/app/ActivityThread.java</span><br><span class="line">frameworks/base/core/java/android/app/ContentProviderHolder.java</span><br><span class="line"></span><br><span class="line">frameworks/base/core/services/com/android/server/am/ActivityManagerService.java</span><br><span class="line">frameworks/base/core/services/com/android/server/am/ProviderMap.java</span><br><span class="line">frameworks/base/core/services/com/android/server/am/ContentProviderRecord.java</span><br><span class="line">frameworks/base/core/services/com/android/server/am/ContentProviderConnection.java</span><br><span class="line">frameworks/base/core/services/com/android/server/am/ProviderMap.java</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Android/" rel="tag"># Android</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/3752956090/" rel="prev" title="Broadcast 源码分析">
+      <i class="fa fa-chevron-left"></i> Broadcast 源码分析
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/2681383033/" rel="next" title="Service 源码分析">
+      Service 源码分析 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ContentProvider-%E7%AE%80%E4%BB%8B"><span class="nav-text">ContentProvider 简介</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-ContentProvider"><span class="nav-text">使用 ContentProvider</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0-ContentProvider-%E7%B1%BB"><span class="nav-text">实现 ContentProvider 类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%B8%85%E5%8D%95%E6%96%87%E4%BB%B6"><span class="nav-text">配置清单文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96-URI"><span class="nav-text">获取 URI</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="nav-text">源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ContentResolver"><span class="nav-text">ContentResolver</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#getContentResolver"><span class="nav-text">getContentResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ContentResolver-%E4%BA%A4%E4%BA%92%E8%BF%87%E7%A8%8B"><span class="nav-text">ContentResolver 交互过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96-ContentProvider-%E8%BF%87%E7%A8%8B"><span class="nav-text">获取 ContentProvider 过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#acquireUnstableProvider-acquireProvider"><span class="nav-text">acquireUnstableProvider &amp; acquireProvider</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ActivityThread-acquireProvider"><span class="nav-text">ActivityThread.acquireProvider</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ActivityThread-acquireExistingProvider"><span class="nav-text">ActivityThread.acquireExistingProvider</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ActivityManagerService-getContentProvider"><span class="nav-text">ActivityManagerService.getContentProvider</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8E-ContentProvider-%E4%BA%A4%E4%BA%92%E8%BF%87%E7%A8%8B"><span class="nav-text">与 ContentProvider 交互过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ContentProvider-%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B"><span class="nav-text">ContentProvider 初始化过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AMS-%E5%8F%91%E8%B5%B7%E7%9A%84-ContentProvider-%E5%AE%89%E8%A3%85"><span class="nav-text">AMS 发起的 ContentProvider 安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BA%94%E7%94%A8%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E6%97%B6%E7%9A%84-ContentProvider-%E5%AE%89%E8%A3%85"><span class="nav-text">应用进程启动时的 ContentProvider 安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ActivityThread-installProvider"><span class="nav-text">ActivityThread.installProvider</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#installProviderAuthoritiesLocked"><span class="nav-text">installProviderAuthoritiesLocked</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AMS-publishContentProviders"><span class="nav-text">AMS.publishContentProviders</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ContentProvider-%E6%9C%8D%E5%8A%A1%E7%AB%AF%E8%A2%AB%E6%9D%80%E7%89%B5%E8%BF%9E%E5%AE%A2%E6%88%B7%E7%AB%AF%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-text">ContentProvider 服务端被杀牵连客户端的过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#cleanUpApplicationRecordLocked"><span class="nav-text">cleanUpApplicationRecordLocked</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#removeDyingProviderLocked"><span class="nav-text">removeDyingProviderLocked</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Q-A"><span class="nav-text">Q&amp;A</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="nav-text">参考文献</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%BA%90%E4%BB%A3%E7%A0%81"><span class="nav-text">源代码</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">solarqiang</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/solarqiang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;solarqiang" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhiqiang.sol@foxmail.com" title="E-Mail → mailto:zhiqiang.sol@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">solarqiang</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v7.0.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.7.2
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"bbnDMngYAJzVwwnYmQY3Rpm4-MdYXbMMI","app_key":"19WWCYLnVoXolUN0qqs73zX1","security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'f7b603007e72448a85b0',
+      clientSecret: 'a8354c5d4cc087aef62a729d4c69750b38cd2ad4',
+      repo        : 'solarqiang.github.io',
+      owner       : 'solarqiang',
+      admin       : ['solarqiang'],
+      id          : 'f0a6ff3d74494e828dc6210234eed989',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

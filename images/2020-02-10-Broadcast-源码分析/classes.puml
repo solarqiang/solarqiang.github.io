@@ -1,0 +1,86 @@
+@startuml Classes
+package com.android.server.am {
+    class ActivityManagerService
+    class BroadcastQueue
+    class BroadcastRecord
+    class ProcessRecord
+    class ReceiverList
+    class BroadcastFilter
+}
+package android.app {
+    class LoadedApk
+    class ReceiverDispatcher
+    class InnerReceiver
+    class ActivityThread
+    class ApplicationThread
+}
+package android.content {
+    interface IIntentReceiver
+    class BroadcastReceiver
+    class PendingResult
+    class ReceiverData
+    class Context
+    class Intent
+}
+class ResolveInfo
+
+BroadcastReceiver *-- PendingResult
+PendingResult <|-- ReceiverData
+ActivityManagerService *-- ReceiverList
+ActivityManagerService *-- BroadcastQueue
+BroadcastQueue *-- BroadcastRecord
+ActivityThread *-- ApplicationThread
+LoadedApk o-- ReceiverDispatcher
+ReceiverDispatcher *-- InnerReceiver
+InnerReceiver <|.. IIntentReceiver
+ReceiverList *-- BroadcastFilter
+BroadcastRecord o-- BroadcastFilter
+
+class BroadcastReceiver {
+- PendingResult mPendingResult
++ abortBroadcast()
++ setResult()
++ getResult()
++ onReceive()
++ setPendingResult()
+}
+class PendingResult {
+~ int mResultCode
+~ String mResultData
+~ Bundle mResultExtras
+~ boolean mAbortBroadcast
+}
+class BroadcastRecord {
+~ Intent Intent
+~ ProcessRecord callerApp
+~ boolean ordered
+~ booelan sticky
+~ List receivers
+}
+class ActivityManagerService {
+~ HashMap<IBinder, ReceiverList> mRegisteredReceivers
+~ BroadcastQueue[] mBroadcastQueues
+}
+class BroadcastQueue {
+~ processNextBroadcastLocked()
+~ processCurBroadcastLocked()
+~ deliverToRegisteredReceiverLocked()
+~ performReceiverLocked()
+~ finishReceiverLocked()
+}
+class ActivityThread {
+~ ApplicationThread mAppThread
+~ handleReceiver()
+}
+class ApplicationThread {
++ scheduleReceiver(Intent, ...)
++ scheduleRegisteredReceiver(IIntentReceiver, Intent, ...)
+}
+class LoadedApk {
+- ArrayMap<Context, ArrayMap<BroadcastReceiver, ReceiverDispatcher>> mReceivers
+}
+class InnerReceiver {
++ performReceive()
+}
+
+@enduml

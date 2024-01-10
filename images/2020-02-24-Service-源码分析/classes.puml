@@ -1,0 +1,60 @@
+@startuml
+package android.content {
+    abstract class Context
+    interface ServiceConnection
+    interface IServiceConnection
+}
+package android.app {
+    abstract class Service
+    class ContextImpl
+    class ActivityThread
+    class LoadedApk
+    class ServiceDispatcher
+    class ConnectionInfo
+}
+package com.android.server.am {
+    class ActivityManagerService
+    class ActiveServices
+    class ProcessRecord
+    class ConnectionRecord
+    class ServiceRecord
+}
+
+interface ServiceConnection {
++ onBindingDied(ComponentName)
++ onNullBinding(ComponentName)
++ onServiceConnected(ComponentName, IBinder)
++ onServiceDisconnected(ComponentName, IBinder)
+}
+class ActivityThread {
+
+}
+class LoadedApk {
+}
+class ServiceDispatcher {
+- mIserviceConnection
+- mConnection
+- Context mContext
+- Handler mActivityThread
+- Executor mActivityExecutor
+- boolean mForgotten
+}
+class ProcessRecord {
+~ ArraySet<ServiceRecord> services
+~ ArraySet<ServiceRecord> executingServices
+~ ArraySet<ConnectionRecord> connections
+}
+class ServiceRecord {
+- ArrayMap<IBinder, ArrayList<ConnectionRecord>> connections
+}
+class ActiveServices {
+~ SparseArray<ServiceMap> mServiceMap
+~ ArrayMap<IBinder, ArrayList<ConnectionRecord>> mServiceConnections
+}
+class ServiceMap {
+~ mServicesByInstanceName
+~ mServicesByIntent
+~ mDelayedStartList
+~ mStartingBackground
+}
+@enduml
