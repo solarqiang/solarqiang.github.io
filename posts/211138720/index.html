@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="b6sfFZ2JS42hoER_mUyRDfihbdCJv_T81PvPJY4zjM0">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":280,"display":"hide","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":3,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Fragment 视图内嵌套 Fragment 时，使用 getChildFragmentManager() 而非 getActivity().getSupportFragmentManager() 创建 Fragment 时，先尝试复用已有的 Fragment 不可以在构造工厂方法内为 Fragment 注入 Bundle Arguments 以外的依赖 提交 FragmentTransa">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fragment 开发推荐实践">
+<meta property="og:url" content="http://solarqiang.github.io/posts/211138720/">
+<meta property="og:site_name" content="小强的开发笔记">
+<meta property="og:description" content="Fragment 视图内嵌套 Fragment 时，使用 getChildFragmentManager() 而非 getActivity().getSupportFragmentManager() 创建 Fragment 时，先尝试复用已有的 Fragment 不可以在构造工厂方法内为 Fragment 注入 Bundle Arguments 以外的依赖 提交 FragmentTransa">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-12-12T02:00:00.000Z">
+<meta property="article:modified_time" content="2024-01-21T06:42:31.754Z">
+<meta property="article:author" content="solarqiang">
+<meta property="article:tag" content="Android">
+<meta property="article:tag" content="推荐实践">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://solarqiang.github.io/posts/211138720/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Fragment 开发推荐实践 | 小强的开发笔记</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">小强的开发笔记</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://solarqiang.github.io/posts/211138720/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="solarqiang">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小强的开发笔记">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Fragment 开发推荐实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-12-12 10:00:00" itemprop="dateCreated datePublished" datetime="2023-12-12T10:00:00+08:00">2023-12-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-01-21 14:42:31" itemprop="dateModified" datetime="2024-01-21T14:42:31+08:00">2024-01-21</time>
+              </span>
+
+          
+            <span id="/posts/211138720/" class="post-meta-item leancloud_visitors" data-flag-title="Fragment 开发推荐实践" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <!-- toc -->
+
+<ul>
+<li><a href="/posts/211138720/#Fragment-%E8%A7%86%E5%9B%BE%E5%86%85%E5%B5%8C%E5%A5%97-Fragment-%E6%97%B6%EF%BC%8C%E4%BD%BF%E7%94%A8-getChildFragmentManager-%E8%80%8C%E9%9D%9E-getActivity-getSupportFragmentManager"><code>Fragment</code> 视图内嵌套 <code>Fragment</code> 时，使用 <code>getChildFragmentManager()</code> 而非 <code>getActivity().getSupportFragmentManager()</code></a></li>
+<li><a href="/posts/211138720/#%E5%88%9B%E5%BB%BA-Fragment-%E6%97%B6%EF%BC%8C%E5%85%88%E5%B0%9D%E8%AF%95%E5%A4%8D%E7%94%A8%E5%B7%B2%E6%9C%89%E7%9A%84-Fragment">创建 <code>Fragment</code> 时，先尝试复用已有的 <code>Fragment</code></a></li>
+<li><a href="/posts/211138720/#%E4%B8%8D%E5%8F%AF%E4%BB%A5%E5%9C%A8%E6%9E%84%E9%80%A0%E5%B7%A5%E5%8E%82%E6%96%B9%E6%B3%95%E5%86%85%E4%B8%BA-Fragment-%E6%B3%A8%E5%85%A5-Bundle-Arguments-%E4%BB%A5%E5%A4%96%E7%9A%84%E4%BE%9D%E8%B5%96">不可以在构造工厂方法内为 <code>Fragment</code> 注入 Bundle Arguments 以外的依赖</a></li>
+<li><a href="/posts/211138720/#%E6%8F%90%E4%BA%A4-FragmentTransaction-%E6%97%B6%EF%BC%8C%E4%BC%98%E5%85%88%E4%BD%BF%E7%94%A8-commit-%E8%80%8C%E9%9D%9E-commitNow">提交 <code>FragmentTransaction</code> 时，优先使用 <code>commit()</code> 而非 <code>commitNow()</code></a></li>
+<li><a href="/posts/211138720/#%E8%80%83%E8%99%91%E4%BD%BF%E7%94%A8-commit-%E5%89%8D%E6%A3%80%E6%9F%A5%E7%8A%B6%E6%80%81%EF%BC%8C%E8%80%8C%E9%9D%9E%E6%97%A0%E8%84%91%E4%BD%BF%E7%94%A8-commitAllowingStateLoss">考虑使用 <code>commit()</code> 前检查状态，而非无脑使用 <code>commitAllowingStateLoss()</code></a></li>
+<li><a href="/posts/211138720/#FAQ">FAQ</a></li>
+</ul>
+<!-- tocstop -->
+
+<span id="more"></span>
+<h1 id="Fragment-视图内嵌套-Fragment-时，使用-getChildFragmentManager-而非-getActivity-getSupportFragmentManager"><a href="#Fragment-视图内嵌套-Fragment-时，使用-getChildFragmentManager-而非-getActivity-getSupportFragmentManager" class="headerlink" title="Fragment 视图内嵌套 Fragment 时，使用 getChildFragmentManager() 而非 getActivity().getSupportFragmentManager()"></a><code>Fragment</code> 视图内嵌套 <code>Fragment</code> 时，使用 <code>getChildFragmentManager()</code> 而非 <code>getActivity().getSupportFragmentManager()</code></h1><p>如果子 <code>Fragment</code> <em>视图</em>是在某个 <code>Fragment</code> 视图内创建的，那么应该使用该 <code>Fragment</code> 的 <code>ChildFragmentManager</code> 管理其状态。</p>
+<p><code>FragmentManager</code> 不仅负责 <code>Fragment</code> 状态切换，还负责在重建 <code>Activity</code> 时恢复 <code>Fragment</code> 状态。在恢复 <code>Fragment</code> 状态时，如果使用了错误的 <code>FragmentManager</code>，可能会导致 <code>Fragment</code> 状态恢复错误，引起界面异常、崩溃或逻辑错误。</p>
+<p>考虑以下错误情形：</p>
+<ol>
+<li>使用视图容器 id 添加 <code>SubFragment</code> 到 <code>MainFragment</code> 的子视图，但使用了 <code>MainFragment</code> 对应 <code>Activity</code> 的 <code>FragmentManager</code></li>
+<li>对应 <code>Activity</code> 动态添加了有相同 id  的视图到视图树（例如 <code>ViewPager</code>）</li>
+<li>恢复 <code>Fragment</code> 状态时，从视图树找到了动态添加的视图，而非先前作为容器的视图，造成界面异常或崩溃。</li>
+</ol>
+<p>此外，Lifecycle 相关 API 支持锁定 <code>Fragment</code> 的 <code>maxLifeCycle</code>，此设置会应用到其 <code>ChildFragmentManager</code> 管理的子 <code>Fragment</code>。如果使用了错误的 <code>FragmentManager</code>，会导致生命周期表现不符合预期，造成意外的 <code>LiveData</code> 更新、业务逻辑错误等问题。</p>
+<h1 id="创建-Fragment-时，先尝试复用已有的-Fragment"><a href="#创建-Fragment-时，先尝试复用已有的-Fragment" class="headerlink" title="创建 Fragment 时，先尝试复用已有的 Fragment"></a>创建 <code>Fragment</code> 时，先尝试复用已有的 <code>Fragment</code></h1><p>由于 <code>FragmentManager</code> 保存了 Fragment 的状态，在配置变更造成 <code>Activity</code> 和 <code>Fragment</code> 重建时，会先从保存的状态创建 Fragment，并试图关联到对应的视图层级。</p>
+<p>如果不加判断地创建和添加 <code>Fragment</code>，轻则丢失保存的状态，重则重复添加 <code>Fragment</code> 导致 crash。</p>
+<p>如果实际添加到视图的 <code>Fragment</code> 实例是由系统恢复的，而业务逻辑依赖的 <code>Fragment</code> 实例是自己创建的，则可能造成难以复现和排查的问题。</p>
+<p>为此，在创建 <code>Fragment</code> 时，尝试复用已有的 <code>Fragment</code>。如果判断已有的 <code>Fragment</code> 不能复用，要显式移除该 <code>Fragment</code>，避免内存泄露。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 错误示范</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onViewCreated</span><span class="params">(View view, <span class="meta">@Nullable</span> Bundle savedInstanceState)</span> &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    containerPageFragment = ContainerFragment.newInstance(containerBundle);</span><br><span class="line">  <span class="comment">// 这里用 add 的话，重建会出错，正是由于系统已经帮忙恢复了 Fragment，再 add 到同一个容器会抛异常。用 replace 相当于丢弃了系统恢复的实例</span></span><br><span class="line">      getSupportFragmentManager()</span><br><span class="line">              .beginTransaction()</span><br><span class="line">              .replace(R.id.fragment_container, containerPageFragment)</span><br><span class="line">              .commit();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 推荐实践</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title function_">onViewCreated</span><span class="params">(View view, <span class="meta">@Nullable</span> Bundle savedInstanceState)</span> &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="type">FragmentManager</span> <span class="variable">fm</span> <span class="operator">=</span> getSupportFragmentManager();</span><br><span class="line">    containerPageFragment = getOrCreateFragment(fm, R.id.fragment_container);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> ContainerFragment <span class="title function_">getOrCreateFragment</span><span class="params">(FragmentManager fm, <span class="type">int</span> id)</span> &#123;</span><br><span class="line">    <span class="type">Fragment</span> <span class="variable">fragment</span> <span class="operator">=</span> fm.findFragmentById(id);</span><br><span class="line">    <span class="keyword">if</span> (fragment <span class="keyword">instanceof</span> ContainerPageFragment) &#123;</span><br><span class="line">      <span class="keyword">return</span> (ContainerPageFragment) fragment; <span class="comment">// 直接返回可以复用的 Fragment</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">FragmentTransaction</span> <span class="variable">ft</span> <span class="operator">=</span> fm.beginTransaction();</span><br><span class="line">    <span class="keyword">if</span> (fragment != <span class="literal">null</span>) &#123;</span><br><span class="line">        ft.remove(fragment); <span class="comment">// 移除不能复用的 Fragment</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">ContainerFragment</span> <span class="variable">containerPageFragment</span> <span class="operator">=</span> ContainerFragment.newInstance(containerBundle);</span><br><span class="line">  <span class="comment">// 前面已经移除了可能在这个 id 上的 Fragment，这里可以放心用 add</span></span><br><span class="line">    ft.add(id, containerPageFragment)</span><br><span class="line">              .commit();</span><br><span class="line">    <span class="keyword">return</span> containerPageFragment;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>androidx.fragment.app</code> 1.2.0 以上的版本引入了基于类的 <code>add()</code> 和 <code>replace()</code> 方法，推荐使用这些方法替代显式创建新实例的方式。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">FragmentManager</span> <span class="variable">fm</span> <span class="operator">=</span> fragment.getChildFragmentManager();</span><br><span class="line"><span class="type">Bundle</span> <span class="variable">args</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Bundle</span>();</span><br><span class="line">args.putLong(<span class="string">&quot;userId&quot;</span>, getUser().getUserId());</span><br><span class="line"><span class="comment">// 可以使用该方法一并传入 arguments bundle，省去构造工厂方法</span></span><br><span class="line">fm.beginTransaction().add(id, ContainerPageFragment.class, args).commit();</span><br></pre></td></tr></table></figure>
+
+<h1 id="不可以在构造工厂方法内为-Fragment-注入-Bundle-Arguments-以外的依赖"><a href="#不可以在构造工厂方法内为-Fragment-注入-Bundle-Arguments-以外的依赖" class="headerlink" title="不可以在构造工厂方法内为 Fragment 注入 Bundle Arguments 以外的依赖"></a>不可以在构造工厂方法内为 <code>Fragment</code> 注入 Bundle Arguments 以外的依赖</h1><p>由于 <code>Fragment</code> 重建机制的存在，在构造工厂方法里注入 Bundle Arguments 以外的依赖是不可靠的：<code>Fragment</code> 重建时，只会恢复保存的 Bundle Arguments，并不会恢复其他依赖。</p>
+<p>虽然可以对这种情况判断并单独注入依赖，但相对更好的方式是在 <code>FragmentLifecycleCallbacks</code> 统一处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 不推荐的做法</span></span><br><span class="line">MyBusinessLogic logic;</span><br><span class="line"><span class="type">ContainerFragment</span> <span class="variable">containerFragment</span> <span class="operator">=</span> ContainerFragment.newInstance(containerBundle, logic);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Fragment 构造工厂里，对于不能保存在 Bundle Arguments 里的依赖项，不应该进行注入</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ContainerFragment <span class="title function_">newInstance</span><span class="params">(Bundle bundle, MyBusinessLogic logic)</span> &#123;</span><br><span class="line">    <span class="type">ContainerFragment</span> <span class="variable">fragment</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ContainerFragment</span>();</span><br><span class="line">    fragment.setArguments(bundle); <span class="comment">// 系统重建 Fragment 时，会恢复保存的 Arguments</span></span><br><span class="line">    fragment.setBusinessLogic(logic); <span class="comment">// 系统重建 Fragment 时，可不会帮你注入这个依赖</span></span><br><span class="line">    <span class="keyword">return</span> fragment;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用 FragmentLifecycleCallbacks 注入依赖</span></span><br><span class="line">MyBusinessLogic logic;</span><br><span class="line"><span class="type">FragmentManager</span> <span class="variable">fm</span> <span class="operator">=</span> parent.getChildFragmentManager();</span><br><span class="line">fm.registerFragmentLifecycleCallbacks(<span class="keyword">new</span> <span class="title class_">FragmentManager</span>.FragmentLifecycleCallbacks() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onFragmentPreAttached</span><span class="params">(FragmentManager fm, Fragment f, Context context)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (f <span class="keyword">instanceof</span> ContainerFragment) &#123;</span><br><span class="line">            ((ContainerFragment) f).setBusinessLogic(logic);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;, <span class="literal">false</span>);</span><br></pre></td></tr></table></figure>
+
+<p>也可以使用 Hilt 之类的依赖注入框架，这样开发者不必自己考虑如何注入依赖的问题。</p>
+<p>最后，建议使用 <code>androidx.fragment.app</code> 1.2.0 以上版本引入的基于类的 <code>add()</code> 和 <code>replace()</code> 方法，逐步弃用传入 Fragment 实例的 <code>add()</code> 和 <code>replace()</code> ，最终完全弃用 Fragment 构造工厂方法，以避免潜在风险。</p>
+<h1 id="提交-FragmentTransaction-时，优先使用-commit-而非-commitNow"><a href="#提交-FragmentTransaction-时，优先使用-commit-而非-commitNow" class="headerlink" title="提交 FragmentTransaction 时，优先使用 commit() 而非 commitNow()"></a>提交 <code>FragmentTransaction</code> 时，优先使用 <code>commit()</code> 而非 <code>commitNow()</code></h1><p>使用 <code>commit()</code> 而非 <code>commitNow()</code> 有助于 <code>FragmentManager</code> 合并执行多个 <code>FragmentTransaction</code>，重排其内部操作的顺序、消除冗余操作。</p>
+<h1 id="考虑使用-commit-前检查状态，而非无脑使用-commitAllowingStateLoss"><a href="#考虑使用-commit-前检查状态，而非无脑使用-commitAllowingStateLoss" class="headerlink" title="考虑使用 commit() 前检查状态，而非无脑使用 commitAllowingStateLoss()"></a>考虑使用 <code>commit()</code> 前检查状态，而非无脑使用 <code>commitAllowingStateLoss()</code></h1><p>开发过程中不时遇到使用 <code>commit()</code> 时抛出  <code>IllegalStateException</code> 异常，为应对该异常，许多开发者倾向于使用 <code>try-catch</code> 捕获，或使用 <code>commitAllowingStateLoss()</code> 代替 <code>commit()</code>。但这样做是有其副作用的，最好是理解框架抛异常的原因，并针对性地应对。</p>
+<p> <code>commit()</code> 时抛出 <code>IllegalStateException</code> 异常的原因有以下几种：</p>
+<ol>
+<li>当前 <code>FragmentManager</code> 已经保存了 <code>Fragment</code> 状态（宿主调用了 <code>onSaveInstanceState</code>），并且还没有重新恢复（还没有调用 <code>onCreate/onStart/onResume</code> ），因此此后的提交操作不会记录到保存的状态中，因此也不会在重建时恢复；</li>
+<li>当前 <code>FragmentManager</code> 对应的 <code>LoaderManager</code> 已经完成了加载或正在重置，在 <code>onLoadFinished</code> 或 <code>onLoaderReset</code>回调返回前，不允许执行 <code>commit</code>，因为官方认为这个回调可能在任何时间返回（包括 <code>Fragment</code> 状态已保存或已被销毁），因此并不安全。（我个人认为这属于设计失误，用户应该自己确保调用安全）</li>
+</ol>
+<p>对于 <code>Fragment</code> 状态保存后抛出异常，其实是框架的预期行为，旨在提醒开发者确认并正确处理方法调用时机。</p>
+<p>考虑以下使用场景：</p>
+<ol>
+<li>在网络数据返回时，创建并展示 <code>Fragment</code>，更新某个 <code>LiveData</code> 状态值，表示该 <code>Fragment</code> 处于展示状态；</li>
+<li>如果此时用户实际上已经离开 app，<code>onSaveInstanceState</code> 已经调用，此时直接调用 <code>commit()</code> 添加了该 <code>Fragment</code>，应用将抛出异常；</li>
+<li>如果此时改为使用<code>commitAllowingStateLoss()</code> 添加了该 <code>Fragment</code> ，将不会抛出异常。<ol>
+<li>如果用户返回 app 时，app 没有被回收，页面没有被重建，表现也符合预期：<code>Fragment</code> 正常展示，<code>LiveData</code> 的值正常更新；</li>
+<li>但如果用户返回 app 时，页面经历了重建过程，将出现不符合预期的表现：<code>Fragment</code> 没有正常展示，但 <code>LiveData</code> 的值被更新了，导致状态不一致，进而引起功能逻辑异常。这样的问题由于偶发性，也比较难以排查。</li>
+</ol>
+</li>
+</ol>
+<p>因此，调用 <code>commit()</code> 时抛出异常，是框架在提醒开发者，<code>Fragment</code> 状态的变更不会在重建之后恢复，当页面重建时可能会出现不一致的问题。对此开发者有两种应对方式：</p>
+<ol>
+<li><p>事前预防：尽量不要在启动生命周期回调（<code>onCreate/onStart/onResume</code>）之外，直接调用 <code>FragmentTransaction.commit()</code> 。<br> 在需要在用户点击时、网络数据返回等异步回调中展示 <code>Fragment</code> 的场景，通过设置 <code>LiveData</code> ，将调用延迟到合适的时机。</p>
+<p> 如果不想或不适合使用 <code>LiveData</code>，则在调用 <code>commit()</code> 前，需要使用 <code>FragmentManager#isStateSaved()</code>检查状态是否已经被保存：如果状态尚未被保存，则调用 <code>commit()</code> 提交变更；如果状态已经被保存，则不调用 <code>commit()</code> 提交变更，并自行处理恢复逻辑。</p>
+</li>
+<li><p>事后处理：使用 <code>commitAllowingStateLoss()</code> 方法。<br> 这意味着：开发者充分了解 <code>Fragment</code> 状态丢失的可能结果，并确认该情况不影响业务流程，或针对该情况调整了业务逻辑。<br> 一种处理方案是：在处理 <code>Fragment</code> 状态变更前，使用 <code>ViewModel + LiveData</code> 记录将要进行的操作：在使用与 <code>Fragment</code> 状态相关的逻辑前，检查 <code>Fragment</code> 状态是否符合预期：如果不符合预期，则要根据之前的记录，进行必要的操作，以恢复预期的状态。<br> 这种方案的维护成本较高，容易出错，因为往往不能确定在业务逻辑的何处会判断 <code>Fragment</code> 的状态，因此不推荐使用。</p>
+</li>
+</ol>
+<p>对于 <code>LoaderManager</code> 引起的问题，Android 官方文档已经废弃 <code>LoaderManager</code>，建议是在新代码中不再使用 <code>LoaderManager</code> ，并尽快将已有的相关业务逻辑迁移到使用 <code>ViewModel + LiveData</code> 开发。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 不推荐在回调用 commitAllowingStateLoss</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onCallback</span><span class="params">(Data data)</span> &#123;</span><br><span class="line">   	getChildFragmentManager().beginTransaction()</span><br><span class="line">            .replace(R.id.placeholder,MyFragment.newInstance(data))</span><br><span class="line">            .commitAllowingStateLoss();</span><br><span class="line">    pageShowStatus.setValue(<span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 推荐：使用 LiveData 推送变更，系统会在合适的时机回调</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onCallback</span><span class="params">(Data data)</span> &#123;</span><br><span class="line">    pendingData.setValue(data);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// LiveData 只会在页面活跃状态下推送变更，因此可以直接 commit()</span></span><br><span class="line">pendingData.addObserver(data -&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> (data == <span class="literal">null</span>) &#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">FragmentManager</span> <span class="variable">fm</span> <span class="operator">=</span> getChildFragmentManager();</span><br><span class="line">    <span class="keyword">if</span> (fm.isStateSaved()) &#123;</span><br><span class="line">        <span class="comment">// 怎么会走到这里来呢？就不处理了吧</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      getChildFragmentManager().beginTransaction()</span><br><span class="line">              .replace(R.id.placeholder, MyFragment.newInstance(data))</span><br><span class="line">              .commit();</span><br><span class="line">      pageShowStatus.setValue(<span class="literal">true</span>);</span><br><span class="line">      pendingData.setValue(<span class="literal">null</span>);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h1 id="FAQ"><a href="#FAQ" class="headerlink" title="FAQ"></a>FAQ</h1><h2 id="使用-commit-提交事务时，Fragment-状态变更是异步进行的。如果调用-commit-方法前尚未保存状态（因此可以提交），但在事务真正执行前，插入了-onSaveInstanceState-调用，是否会触发异常？"><a href="#使用-commit-提交事务时，Fragment-状态变更是异步进行的。如果调用-commit-方法前尚未保存状态（因此可以提交），但在事务真正执行前，插入了-onSaveInstanceState-调用，是否会触发异常？" class="headerlink" title="使用 commit() 提交事务时，Fragment 状态变更是异步进行的。如果调用 commit() 方法前尚未保存状态（因此可以提交），但在事务真正执行前，插入了 onSaveInstanceState 调用，是否会触发异常？"></a>使用 <code>commit()</code> 提交事务时，<code>Fragment</code> 状态变更是异步进行的。如果调用 <code>commit()</code> 方法前尚未保存状态（因此可以提交），但在事务真正执行前，插入了 <code>onSaveInstanceState</code> 调用，是否会触发异常？</h2><p>答：<strong>不会</strong>。在 <code>onSaveInstanceState</code> 调用之前，会先执行<em>已提交但尚未执行</em>的事务，因此这些事务的状态会正确保存，也不会触发异常。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Android/" rel="tag"># Android</a>
+              <a href="/tags/%E6%8E%A8%E8%8D%90%E5%AE%9E%E8%B7%B5/" rel="tag"># 推荐实践</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/3921235105/" rel="prev" title="Java 遍历 PriorityQueue 注意事项">
+      <i class="fa fa-chevron-left"></i> Java 遍历 PriorityQueue 注意事项
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/299597505/" rel="next" title="自定义 View 推荐实践">
+      自定义 View 推荐实践 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Fragment-%E8%A7%86%E5%9B%BE%E5%86%85%E5%B5%8C%E5%A5%97-Fragment-%E6%97%B6%EF%BC%8C%E4%BD%BF%E7%94%A8-getChildFragmentManager-%E8%80%8C%E9%9D%9E-getActivity-getSupportFragmentManager"><span class="nav-text">Fragment 视图内嵌套 Fragment 时，使用 getChildFragmentManager() 而非 getActivity().getSupportFragmentManager()</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-Fragment-%E6%97%B6%EF%BC%8C%E5%85%88%E5%B0%9D%E8%AF%95%E5%A4%8D%E7%94%A8%E5%B7%B2%E6%9C%89%E7%9A%84-Fragment"><span class="nav-text">创建 Fragment 时，先尝试复用已有的 Fragment</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E5%8F%AF%E4%BB%A5%E5%9C%A8%E6%9E%84%E9%80%A0%E5%B7%A5%E5%8E%82%E6%96%B9%E6%B3%95%E5%86%85%E4%B8%BA-Fragment-%E6%B3%A8%E5%85%A5-Bundle-Arguments-%E4%BB%A5%E5%A4%96%E7%9A%84%E4%BE%9D%E8%B5%96"><span class="nav-text">不可以在构造工厂方法内为 Fragment 注入 Bundle Arguments 以外的依赖</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%8F%90%E4%BA%A4-FragmentTransaction-%E6%97%B6%EF%BC%8C%E4%BC%98%E5%85%88%E4%BD%BF%E7%94%A8-commit-%E8%80%8C%E9%9D%9E-commitNow"><span class="nav-text">提交 FragmentTransaction 时，优先使用 commit() 而非 commitNow()</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%80%83%E8%99%91%E4%BD%BF%E7%94%A8-commit-%E5%89%8D%E6%A3%80%E6%9F%A5%E7%8A%B6%E6%80%81%EF%BC%8C%E8%80%8C%E9%9D%9E%E6%97%A0%E8%84%91%E4%BD%BF%E7%94%A8-commitAllowingStateLoss"><span class="nav-text">考虑使用 commit() 前检查状态，而非无脑使用 commitAllowingStateLoss()</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#FAQ"><span class="nav-text">FAQ</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-commit-%E6%8F%90%E4%BA%A4%E4%BA%8B%E5%8A%A1%E6%97%B6%EF%BC%8CFragment-%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E6%98%AF%E5%BC%82%E6%AD%A5%E8%BF%9B%E8%A1%8C%E7%9A%84%E3%80%82%E5%A6%82%E6%9E%9C%E8%B0%83%E7%94%A8-commit-%E6%96%B9%E6%B3%95%E5%89%8D%E5%B0%9A%E6%9C%AA%E4%BF%9D%E5%AD%98%E7%8A%B6%E6%80%81%EF%BC%88%E5%9B%A0%E6%AD%A4%E5%8F%AF%E4%BB%A5%E6%8F%90%E4%BA%A4%EF%BC%89%EF%BC%8C%E4%BD%86%E5%9C%A8%E4%BA%8B%E5%8A%A1%E7%9C%9F%E6%AD%A3%E6%89%A7%E8%A1%8C%E5%89%8D%EF%BC%8C%E6%8F%92%E5%85%A5%E4%BA%86-onSaveInstanceState-%E8%B0%83%E7%94%A8%EF%BC%8C%E6%98%AF%E5%90%A6%E4%BC%9A%E8%A7%A6%E5%8F%91%E5%BC%82%E5%B8%B8%EF%BC%9F"><span class="nav-text">使用 commit() 提交事务时，Fragment 状态变更是异步进行的。如果调用 commit() 方法前尚未保存状态（因此可以提交），但在事务真正执行前，插入了 onSaveInstanceState 调用，是否会触发异常？</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">solarqiang</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/solarqiang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;solarqiang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhiqiang.sol@foxmail.com" title="E-Mail → mailto:zhiqiang.sol@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">solarqiang</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"bbnDMngYAJzVwwnYmQY3Rpm4-MdYXbMMI","app_key":"19WWCYLnVoXolUN0qqs73zX1","security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'f7b603007e72448a85b0',
+      clientSecret: 'a8354c5d4cc087aef62a729d4c69750b38cd2ad4',
+      repo        : 'solarqiang.github.io',
+      owner       : 'solarqiang',
+      admin       : ['solarqiang'],
+      id          : 'fd0746b9c03dacfc3ce2b6b1e31d5800',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

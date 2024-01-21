@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="b6sfFZ2JS42hoER_mUyRDfihbdCJv_T81PvPJY4zjM0">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":280,"display":"hide","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":3,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="前言这里的建议大多数应用于 Java 语言，其他编程语言也可以适当参考。有一些更通用的、关于如何编写整洁代码的建议，可以参考《整洁代码之道》    减少无意义的判空；学会使用 @Nullable @NonNull 注解 尽量避免使用 checked exceptions 不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类 自顶向下、由抽象到具体地组织代码 不要惧怕异常，更不要隐藏">
+<meta property="og:type" content="article">
+<meta property="og:title" content="整洁代码推荐实践">
+<meta property="og:url" content="http://solarqiang.github.io/posts/1604513434/">
+<meta property="og:site_name" content="小强的开发笔记">
+<meta property="og:description" content="前言这里的建议大多数应用于 Java 语言，其他编程语言也可以适当参考。有一些更通用的、关于如何编写整洁代码的建议，可以参考《整洁代码之道》    减少无意义的判空；学会使用 @Nullable @NonNull 注解 尽量避免使用 checked exceptions 不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类 自顶向下、由抽象到具体地组织代码 不要惧怕异常，更不要隐藏">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-12-15T02:00:00.000Z">
+<meta property="article:modified_time" content="2024-01-21T15:13:22.621Z">
+<meta property="article:author" content="solarqiang">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="推荐实践">
+<meta property="article:tag" content="架构">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://solarqiang.github.io/posts/1604513434/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>整洁代码推荐实践 | 小强的开发笔记</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">小强的开发笔记</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://solarqiang.github.io/posts/1604513434/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="solarqiang">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小强的开发笔记">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          整洁代码推荐实践
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2023-12-15 10:00:00" itemprop="dateCreated datePublished" datetime="2023-12-15T10:00:00+08:00">2023-12-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2024-01-21 23:13:22" itemprop="dateModified" datetime="2024-01-21T23:13:22+08:00">2024-01-21</time>
+              </span>
+
+          
+            <span id="/posts/1604513434/" class="post-meta-item leancloud_visitors" data-flag-title="整洁代码推荐实践" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这里的建议大多数应用于 Java 语言，其他编程语言也可以适当参考。<br>有一些更通用的、关于如何编写整洁代码的建议，可以参考《整洁代码之道》</p>
+<!-- toc -->
+
+<ul>
+<li><a href="/posts/1604513434/#%E5%87%8F%E5%B0%91%E6%97%A0%E6%84%8F%E4%B9%89%E7%9A%84%E5%88%A4%E7%A9%BA%EF%BC%9B%E5%AD%A6%E4%BC%9A%E4%BD%BF%E7%94%A8-Nullable-NonNull-%E6%B3%A8%E8%A7%A3">减少无意义的判空；学会使用 <code>@Nullable</code> <code>@NonNull</code> 注解</a></li>
+<li><a href="/posts/1604513434/#%E5%B0%BD%E9%87%8F-%E9%81%BF%E5%85%8D-%E4%BD%BF%E7%94%A8-checked-exceptions">尽量<em>避免</em>使用 checked exceptions</a></li>
+<li><a href="/posts/1604513434/#%E4%B8%8D%E4%BB%85%E6%98%AF%E8%AF%AD%E6%B3%95%E7%B3%96%EF%BC%9A%E5%B0%BD%E9%87%8F%E4%BD%BF%E7%94%A8-Lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%88%96%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E6%9B%BF%E4%BB%A3%E5%8C%BF%E5%90%8D%E5%86%85%E9%83%A8%E7%B1%BB">不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类</a></li>
+<li><a href="/posts/1604513434/#%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%81%E7%94%B1%E6%8A%BD%E8%B1%A1%E5%88%B0%E5%85%B7%E4%BD%93%E5%9C%B0%E7%BB%84%E7%BB%87%E4%BB%A3%E7%A0%81">自顶向下、由抽象到具体地组织代码</a></li>
+<li><a href="/posts/1604513434/#%E4%B8%8D%E8%A6%81%E6%83%A7%E6%80%95%E5%BC%82%E5%B8%B8%EF%BC%8C%E6%9B%B4%E4%B8%8D%E8%A6%81%E9%9A%90%E8%97%8F%E5%BC%82%E5%B8%B8%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%A4%B1%E8%B4%A5%E5%A5%BD%E8%BF%87%E5%A4%84%E5%A4%84%E5%85%9C%E5%BA%95">不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底</a></li>
+</ul>
+<!-- tocstop -->
+
+<span id="more"></span>
+
+<h1 id="减少无意义的判空；学会使用-Nullable-NonNull-注解"><a href="#减少无意义的判空；学会使用-Nullable-NonNull-注解" class="headerlink" title="减少无意义的判空；学会使用 @Nullable @NonNull 注解"></a>减少无意义的判空；学会使用 <code>@Nullable</code> <code>@NonNull</code> 注解</h1><p>如果已知引用不可能为空，就无需判空。例如，在以下情况下，Java 语言会保证变量不为空：</p>
+<ul>
+<li>前面的代码已经做了判空处理；</li>
+<li>待检查的对象是由一个保证非空返回值的方法返回的，如构造工厂方法或 <code>Objects.requireNonNull</code> 方法；</li>
+<li>待检查的对象是由基本类型自动装箱得到的。</li>
+<li>在 switch-case 语句中，<code>switch</code> 的变量不用再判空，因为如果为空会抛出 <code>NullPointerException</code>（建议在 switch-case 之前加上判空）；</li>
+<li>变量 <code>instanceof</code> 操作符返回 <code>true</code> 时，不用再判空。因为如果为空，<code>instanceof</code> 操作符会返回 <code>false</code>；</li>
+<li>通过 try-catch 捕获的异常对象不用判空；</li>
+<li><code>new</code> 方法创建的对象一定不为空；</li>
+</ul>
+<p>可空性和非空性是可以传递的，但 Java 语言没有提供这样的语法检查机制，这被称为“十亿美元的错误”。一些新兴的语言通过将可空性纳入类型系统来解决这个问题。如果你仍然需要维护 Java 代码或者不能使用 Kotlin，你可以考虑使用 <code>@Nullable</code> 和 <code>@NonNull</code> 注解来标注可空性和非空性。</p>
+<h1 id="尽量避免使用-checked-exceptions"><a href="#尽量避免使用-checked-exceptions" class="headerlink" title="尽量避免使用 checked exceptions"></a>尽量<em>避免</em>使用 checked exceptions</h1><p>Java 语言中，异常分为两种：checked exceptions 和 unchecked exceptions。Checked exceptions 是指那些必须在编译时被捕获或者抛出的异常，而 unchecked exceptions 是指那些可以在运行时被忽略的异常。虽然 checked exceptions 的设计初衷是为了提高程序的健壮性和可靠性，但是在实际开发中，它们也带来了一些问题和挑战：</p>
+<ol>
+<li><strong>增加代码复杂性</strong>： 强制性的异常处理导致代码复杂度提升。当方法声明了 checked exceptions，调用者被迫处理这些异常，即便在某些情况下这些异常的发生概率极低，这可能导致代码冗余。更进一步，强制性的异常处理使得处理异常的代码散布在各个调用处，这对代码的内聚性和可复用性产生了负面影响。</li>
+<li><strong>异常处理流于形式</strong>： 由于对 checked exceptions 的处理是强制性的，开发者往往会选择使用空的 catch 块或者仅仅重新抛出异常，这并没有真正地处理异常，而只是在形式上遵守了规则。</li>
+<li><strong>限制运行时灵活性</strong>：Checked exceptions 需要在编译时进行处理，这可能会对程序的运行时灵活性造成限制。例如，当使用反射或者其他动态技术时，编译时的异常声明可能变得不再适用。</li>
+<li><strong>不兼容 Lambda 表达式</strong>：Lambda 表达式的方法签名是由调用处接口的方法签名推断得出的，checked exceptions 作为方法签名的一部分，通常不会在调用处接口中声明，因此该异常不能通过函数式接口界面传递给上层调用者。因此，使用 checked exceptions 会阻碍方法在 Lambda 表达式中的使用。</li>
+</ol>
+<p>总的来说，开发者需要全面理解和应对 checked exceptions 的各种挑战，在代码中审慎使用该特性，以提高代码的质量和可维护性。</p>
+<h1 id="不仅是语法糖：尽量使用-Lambda-表达式或方法引用替代匿名内部类"><a href="#不仅是语法糖：尽量使用-Lambda-表达式或方法引用替代匿名内部类" class="headerlink" title="不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类"></a>不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类</h1><p>相比匿名内部类，Lambda 表达式有以下好处：</p>
+<ol>
+<li>更加简短，便于阅读，特别是在方法体本身只有一两行的情况下，大大减少冗余信息展示，而聚焦业务逻辑本身。</li>
+<li>不会隐式捕获外部类的 <code>this</code> 指针，能在很多情形下避免内存泄露。</li>
+<li>不能获取指向自身的<code>this</code> 指针：在 Lambda 方法体内调用 <code>this</code> 指向的实际上是其外部类对象。这在某些特殊情况下会有些小小的不便，但大多数情况下会避免潜在的错误：比如在使用入参为 “Lambda 类型与外部类类型的公共类”（最常见的如<code>Object</code>）的方法时，不会在应该传入外部类对象时，错误传入匿名内部类对象。</li>
+<li>鼓励使用函数式的表达方式，简化业务代码。</li>
+</ol>
+<p>如果你一时想不起方法签名，而使用了匿名内部类的表示，Intellij 或者 Android Studio 这样的 IDE 也会在可转化为 Lambda 表达式的情况下提醒你。不用担心，大胆应用建议的操作吧！</p>
+<h1 id="自顶向下、由抽象到具体地组织代码"><a href="#自顶向下、由抽象到具体地组织代码" class="headerlink" title="自顶向下、由抽象到具体地组织代码"></a>自顶向下、由抽象到具体地组织代码</h1><p>好的代码就像一篇良好组织的文章或报告，首先是概述或总结，然后是具体的章节和详细信息。即使只是更换方法在文件中的先后顺序，也能有效提高编写和阅读代码的效率。下面是编写和组织代码的一些建议：</p>
+<ol>
+<li><strong>首先定义接口和抽象类</strong>：在编码开始时，先确定并定义系统的高层次结构，如接口和抽象类，以概述主要功能和行为。</li>
+<li><strong>模块化高层逻辑</strong>：创建清晰的高层模块来表示系统的核心逻辑，隔离复杂性并提供一个简单的外部视图。</li>
+<li><strong>方法实现紧跟声明</strong>：代码中的某个方法 A 调用私有方法 B 时，应将方法 B 的代码放在方法 A 后面。这样，读者可以在了解方法 A 的功能后，马上看到方法 B 的实现，避免分散注意力。</li>
+<li><strong>清晰注释关键接口</strong>：对于关键的接口和抽象类，提供清晰的注释来说明其用途和作用，便于理解和后续维护。</li>
+<li><strong>避免混淆抽象和具体实现</strong>：在代码中明确区分抽象概念和具体实现，避免在一个区域混合使用，以免造成混乱。</li>
+</ol>
+<h1 id="不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底"><a href="#不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底" class="headerlink" title="不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底"></a>不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底</h1><p>对线上异常的恐惧根植在许多开发者的内心，以至于恨不得每一个方法外面都包裹一层 try-catch。</p>
+<p>但异常不是洪水猛兽，它是对你代码出现问题的强有力的提醒，也是对践行“快速失败”这一开发原则的有效工具。</p>
+<p>“快速失败”（Fail-fast）是一种设计哲学，它鼓励软件在检测到问题的第一时间立即报告错误，而不是尝试继续运行并可能导致更多的错误。这个原则背后的理念是，“早期发现并处理错误”比“错误被隐藏，并在未来某个不确定的时间点引发更严重问题”要好。</p>
+<p>具体来说，“快速失败”原则可以为软件开发提供以下好处：</p>
+<ul>
+<li><strong>提早发现问题：</strong> 通过快速失败，开发者可以更快地识别出代码中的问题，从而在问题变得复杂和难以追踪之前就及时修复它们。</li>
+<li><strong>简化调试过程：</strong> 当程序在出现问题时立即停止，开发者可以更容易地定位问题发生的具体位置，这比在程序的后期阶段追踪错误要简单得多。</li>
+<li><strong>防止错误累积：</strong> 如果错误没有被及时发现和处理，它们可能会在系统中累积，导致更大的问题，甚至可能导致系统崩溃。快速失败有助于防止这种情况的发生。</li>
+<li><strong>提高系统的健壮性：</strong> 系统在面对潜在的错误时能够迅速响应并采取措施，这表明系统具备良好的错误处理能力，从而提高了系统的整体健壮性。</li>
+<li><strong>促进良好的编程习惯：</strong> 遵循快速失败原则的开发者往往会更加关注代码的质量和健壮性，从而促进更好的编程实践和习惯。</li>
+</ul>
+<p>开发者常常对程序可能出现的失败或异常感到恐惧，主要是因为他们担心这些错误会使系统变得不稳定或难以维护。然而，快速失败原则实际上鼓励开发者将这种担忧转化为积极的行动，通过提前处理错误，从而降低长期的风险和成本。</p>
+<p>以 GUI 应用程序为例，如果在每个地方都捕获异常，可能会导致一些比应用程序崩溃更糟糕的情况：</p>
+<ol>
+<li>异常发生了，但被悄悄地捕获了，没有错误日志被记录，也没有人注意到这个问题。</li>
+<li>由于捕获异常的地方可能在调用栈的很上层，距离异常发生的地方很远，应用程序不会自动从异常中恢复。如果你没有告诉它在异常发生时应该做什么（例如显示错误信息并提供一个重试按钮），它就什么也不会做。</li>
+<li>应用程序就这样尴尬地处于一个错误的中间状态，向用户展示一个空白的或错乱的屏幕，用户除了完全退出并重新启动应用程序，没有其他办法回到之前的流程中。</li>
+<li>另一种可能是，应用程序从错误的中间状态开始继续运行，它带着重伤继续艰难地运行，一个错误引发了无数个错误，直到最后另一个异常结束了它。这个最后的异常与最初的异常发生的地方相距甚远，你完全不知道应用程序经历了什么，才会发生如此离谱的错误。</li>
+</ol>
+<p>这种情况比应用程序直接崩溃更可怕，原因如下：</p>
+<ol>
+<li>你对应用程序出现问题一无所知，没有在第一时间修复它，直到愤怒的用户投诉过来你才知道发生了什么。而在此之前，已经有许多沉默的用户悄悄地流失了，还有一些用户面对白屏或错误的页面束手无策，不知道如何恢复正常。</li>
+<li>你发现出了问题，但你完全不知道为什么。由于异常发生的第一现场被悄悄掩盖了，你失去了问题发生的上下文，找出问题出现的具体位置变得极其困难。</li>
+<li>表面上看起来一切都没有问题，但代码复杂度增加、资源泄露、安全隐患等隐性风险会一直累积，直到应用程序的体验极差、项目难以维护。</li>
+</ol>
+<p>当然，事情也没必要走向另一个极端。快速失败原则并不意味着开发者不应该捕获和处理任何异常。相反，它强调的是在发现错误时应该立即采取行动，这可能包括记录错误、通知开发者、终止当前操作或者采取其他适当的错误处理措施。关键在于如何响应这些异常：</p>
+<ol>
+<li><strong>输入验证：</strong> 在用户输入或者接收到外部数据时，立即进行验证。如果数据不符合预期，应立即返回错误或提示用户，而不是让错误的数据影响程序的其他部分。</li>
+<li><strong>错误日志记录：</strong> 当异常发生时，应该记录详细的错误信息和堆栈跟踪。<strong>不要捕获异常而不进行任何处理</strong>，即使是打印日志也好。这样可以避免程序在不透明的状态下继续运行。</li>
+<li><strong>使用断言：</strong> 在开发期间，使用断言检查不应该发生的条件。例如，在测试渠道包使用<code>Objects.requireNonNull</code>检查某个重要的变量不为空。这些断言在生产环境中通常是禁用的，但它们在开发和测试阶段可以帮助及早发现问题。</li>
+<li><strong>及时的异常处理：</strong> 在可能抛出异常的代码块周围使用 try-catch 语句，但<strong>只捕获那些你知道如何处理的异常</strong>。例如，当处理网络请求时，捕获<code>IOException</code>并提供用户重试的选项，或者试图从容器中取元素时，捕获 <code>IndexOutOfBoundsException</code> 并视作”没有对应的元素”来处理。</li>
+<li><strong>优化异常传播：</strong> 如果你不知道如何处理可能发生的异常，应当将其抛出，将异常传播到可以处理它的地方。例如，如果一个低级方法遇到无法解决的异常，它应该将异常传播到上层，让更高层的逻辑处理这个异常。捕获异常的最佳地点是在各个业务层级、各套独立 API 之间的交接点。</li>
+<li><strong>用户友好的错误处理：</strong> 当错误发生时，尝试提供清晰的用户反馈，而不是让应用崩溃。使用<code>Toast</code>、<code>Snackbar</code>或者错误界面来通知用户发生了错误，并可能提供解决步骤。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Java/" rel="tag"># Java</a>
+              <a href="/tags/%E6%8E%A8%E8%8D%90%E5%AE%9E%E8%B7%B5/" rel="tag"># 推荐实践</a>
+              <a href="/tags/%E6%9E%B6%E6%9E%84/" rel="tag"># 架构</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/299597505/" rel="prev" title="自定义 View 推荐实践">
+      <i class="fa fa-chevron-left"></i> 自定义 View 推荐实践
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/1377966510/" rel="next" title="一些 Android 开发经验包">
+      一些 Android 开发经验包 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%87%8F%E5%B0%91%E6%97%A0%E6%84%8F%E4%B9%89%E7%9A%84%E5%88%A4%E7%A9%BA%EF%BC%9B%E5%AD%A6%E4%BC%9A%E4%BD%BF%E7%94%A8-Nullable-NonNull-%E6%B3%A8%E8%A7%A3"><span class="nav-text">减少无意义的判空；学会使用 @Nullable @NonNull 注解</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%B0%BD%E9%87%8F%E9%81%BF%E5%85%8D%E4%BD%BF%E7%94%A8-checked-exceptions"><span class="nav-text">尽量避免使用 checked exceptions</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E4%BB%85%E6%98%AF%E8%AF%AD%E6%B3%95%E7%B3%96%EF%BC%9A%E5%B0%BD%E9%87%8F%E4%BD%BF%E7%94%A8-Lambda-%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%88%96%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%E6%9B%BF%E4%BB%A3%E5%8C%BF%E5%90%8D%E5%86%85%E9%83%A8%E7%B1%BB"><span class="nav-text">不仅是语法糖：尽量使用 Lambda 表达式或方法引用替代匿名内部类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%81%E7%94%B1%E6%8A%BD%E8%B1%A1%E5%88%B0%E5%85%B7%E4%BD%93%E5%9C%B0%E7%BB%84%E7%BB%87%E4%BB%A3%E7%A0%81"><span class="nav-text">自顶向下、由抽象到具体地组织代码</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%8D%E8%A6%81%E6%83%A7%E6%80%95%E5%BC%82%E5%B8%B8%EF%BC%8C%E6%9B%B4%E4%B8%8D%E8%A6%81%E9%9A%90%E8%97%8F%E5%BC%82%E5%B8%B8%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%A4%B1%E8%B4%A5%E5%A5%BD%E8%BF%87%E5%A4%84%E5%A4%84%E5%85%9C%E5%BA%95"><span class="nav-text">不要惧怕异常，更不要隐藏异常：快速失败好过处处兜底</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">solarqiang</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/solarqiang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;solarqiang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhiqiang.sol@foxmail.com" title="E-Mail → mailto:zhiqiang.sol@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">solarqiang</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"bbnDMngYAJzVwwnYmQY3Rpm4-MdYXbMMI","app_key":"19WWCYLnVoXolUN0qqs73zX1","security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'f7b603007e72448a85b0',
+      clientSecret: 'a8354c5d4cc087aef62a729d4c69750b38cd2ad4',
+      repo        : 'solarqiang.github.io',
+      owner       : 'solarqiang',
+      admin       : ['solarqiang'],
+      id          : '0b8407d7c80246f4423e1d97c0974c34',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
