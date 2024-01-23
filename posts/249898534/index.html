@@ -24,24 +24,24 @@
   <meta name="description" content="背景知识进程与线程类似其他操作系统的相应概念，Android 的进程拥有独立的虚拟内存空间，而线程与同一进程内的其他线程共享内存，只拥有各自的栈空间、程序计数器和寄存器等少量独占资源。当 Android 启动一个之前未运行的应用的组件时，会为其启动一个包含单个主线程”main”的新的 Linux 进程。默认情况下，同一应用的所有组件会在此进程内启动，并且使用同一执行线程。开发者可以人为安排组件在单">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Handler 源码分析">
-<meta property="og:url" content="http://solarqiang.github.io/posts/249898534/">
+<meta property="og:url" content="https://solarqiang.github.io/posts/249898534/">
 <meta property="og:site_name" content="小强的开发笔记">
 <meta property="og:description" content="背景知识进程与线程类似其他操作系统的相应概念，Android 的进程拥有独立的虚拟内存空间，而线程与同一进程内的其他线程共享内存，只拥有各自的栈空间、程序计数器和寄存器等少量独占资源。当 Android 启动一个之前未运行的应用的组件时，会为其启动一个包含单个主线程”main”的新的 Linux 进程。默认情况下，同一应用的所有组件会在此进程内启动，并且使用同一执行线程。开发者可以人为安排组件在单">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/classes.svg">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/MessageLoop.png">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/next_activity.svg">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/MessageQueue.svg">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/loop.svg">
-<meta property="og:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/sendMessage.svg">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/classes.svg">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/MessageLoop.png">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/next_activity.svg">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/MessageQueue.svg">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/loop.svg">
+<meta property="og:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/sendMessage.svg">
 <meta property="article:published_time" content="2020-01-18T16:00:00.000Z">
 <meta property="article:modified_time" content="2024-01-09T17:38:46.090Z">
 <meta property="article:author" content="solarqiang">
 <meta property="article:tag" content="Android">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/classes.svg">
+<meta name="twitter:image" content="https://solarqiang.github.io/images/2020-01-19-Handler-%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/classes.svg">
 
-<link rel="canonical" href="http://solarqiang.github.io/posts/249898534/">
+<link rel="canonical" href="https://solarqiang.github.io/posts/249898534/">
 
 
 <script id="page-configurations">
@@ -192,7 +192,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://solarqiang.github.io/posts/249898534/">
+    <link itemprop="mainEntityOfPage" href="https://solarqiang.github.io/posts/249898534/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
