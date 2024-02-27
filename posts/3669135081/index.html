@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="google-site-verification" content="b6sfFZ2JS42hoER_mUyRDfihbdCJv_T81PvPJY4zjM0">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"solarqiang.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","width":280,"display":"hide","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":3,"unescape":false,"preload":false},"motion":{"enable":true,"async":true,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="如果你使用 Java 开发，你应该听说过 Java 8 引进的 Lambda 表达式，以及用于处理容器类的 Streams API；如果你用过 JavaScript，你应该也知道高阶函数(如 map&#x2F;reduce, filter, sort)，以及闭包、箭头函数、generator 之类的概念；如果你上手过 Kotlin，你可能会被里面漫天飞舞的 let, apply, also, wi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="为什么你应该学习使用函数式编程">
+<meta property="og:url" content="https://solarqiang.github.io/posts/3669135081/">
+<meta property="og:site_name" content="小强的开发笔记">
+<meta property="og:description" content="如果你使用 Java 开发，你应该听说过 Java 8 引进的 Lambda 表达式，以及用于处理容器类的 Streams API；如果你用过 JavaScript，你应该也知道高阶函数(如 map&#x2F;reduce, filter, sort)，以及闭包、箭头函数、generator 之类的概念；如果你上手过 Kotlin，你可能会被里面漫天飞舞的 let, apply, also, wi">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://kotlinlang.org/docs/images/list-processing.png">
+<meta property="og:image" content="https://kotlinlang.org/docs/images/sequence-processing.png">
+<meta property="article:published_time" content="2024-02-27T13:45:00.000Z">
+<meta property="article:modified_time" content="2024-02-27T15:40:26.207Z">
+<meta property="article:author" content="solarqiang">
+<meta property="article:tag" content="架构">
+<meta property="article:tag" content="Kotlin">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://kotlinlang.org/docs/images/list-processing.png">
+
+<link rel="canonical" href="https://solarqiang.github.io/posts/3669135081/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>为什么你应该学习使用函数式编程 | 小强的开发笔记</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">小强的开发笔记</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://solarqiang.github.io/posts/3669135081/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="solarqiang">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="小强的开发笔记">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          为什么你应该学习使用函数式编程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2024-02-27 21:45:00 / 修改时间：23:40:26" itemprop="dateCreated datePublished" datetime="2024-02-27T21:45:00+08:00">2024-02-27</time>
+            </span>
+
+          
+            <span id="/posts/3669135081/" class="post-meta-item leancloud_visitors" data-flag-title="为什么你应该学习使用函数式编程" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>如果你使用 Java 开发，你应该听说过 Java 8 引进的 Lambda 表达式，以及用于处理容器类的 Streams API；<br>如果你用过 JavaScript，你应该也知道高阶函数(如 <code>map</code>&#x2F;<code>reduce</code>, <code>filter</code>, <code>sort</code>)，以及闭包、箭头函数、generator 之类的概念；<br>如果你上手过 Kotlin，你可能会被里面漫天飞舞的 <code>let</code>, <code>apply</code>, <code>also</code>, <code>with</code> 函数，以及一层层的花括号包裹的 Lambda 表达式感到印象深刻。</p>
+<p>这些新鲜玩意初看起来似乎没有那么直观，甚至很别扭：这些代码块什么时候执行、如何被执行，很难一眼看出来！<br>尝试用一下后，你或许会想“搞这么花里胡哨的，这不就是省得给接口取名字的语法糖嘛”，然后继续写你的匿名内部类；<br>又或者，你会对这种简洁又新奇的写法感到欲罢不能，恨不得将整个项目都改写为花括号嵌套花括号，最后连自己都看不明白写了个啥。</p>
+<p>但这些“新鲜玩意”其实并不新鲜，其历史甚至可以追溯到图灵第一次提出通用图灵机的概念之前！</p>
+<p>这篇文章将试图以程序员的视角介绍<strong>函数式编程</strong>的概念，以及你为什么应该学习使用它的几个理由。</p>
+<span id="more"></span>
+
+<p>本文将大量使用 Kotlin 作为示例语言，了解 Kotlin 的<a target="_blank" rel="noopener" href="https://book.kotlincn.net/text/basic-syntax.html">基本语法</a>，以及<a target="_blank" rel="noopener" href="https://book.kotlincn.net/text/lambdas.html">高阶函数与 Lambda 表达式</a>有助于理解示例。<br>考虑到篇幅及受众，本文不会试图介绍一些过于学术或抽象的概念。尽管他们常常与函数式编程一起出现，但你不需要为了理解函数式编程而学习大量的数学。<br>不理解以下这些概念并不影响阅读本文内容：λ演算(λ-calculus)，单子(Monad)， 函子(Functor)。<br>感兴趣的读者可自行搜索了解。</p>
+<h1 id="什么是函数式编程"><a href="#什么是函数式编程" class="headerlink" title="什么是函数式编程"></a>什么是函数式编程</h1><p><strong>函数式编程（Functional Programming, FP）</strong>是一种编程范式，它将电脑运算视为函数运算，并且避免使用程序状态以及易变对象。在函数式编程中，函数指的不是程序中的普通函数，而是数学中的函数，即映射关系。以下是一些关键概念：</p>
+<ol>
+<li><strong>程序的本质</strong>：根据输入通过某种运算获得相应的输出。</li>
+<li><strong>描述输入和输出之间的映射</strong>：函数式编程用来描述输入和输出之间的映射关系，即对运算过程的抽象。</li>
+<li><strong>纯函数</strong>：相同的输入始终要得到相同的输出。纯函数不依赖于外部状态，也不会改变外部状态。</li>
+</ol>
+<p>在函数式编程中，我们追求整个程序都由函数调用以及函数组合构成。</p>
+<p>打个比方，假设你的任务是将一个球通过布满各种可操作的机关和障碍物的场地到达终点。</p>
+<ul>
+<li>过程式编程就像是你跟着球一起出发，通过场上的装置实时操控球的运动，你无时无刻不在关注：操作了A装置后，球向左偏移了X米，为了到达目的地，下一步需要操作B装置使其向南偏移Y米……最终到达终点；</li>
+<li>函数式编程则像是你在了解了场上所有装置的作用后，通过事先的计算设置好场上装置的参数，确定了球的运动轨迹。当球出发后，你无需观看和干预，就知道球一定能按照计划到达终点。</li>
+</ul>
+<p>在上面的例子中我们可以看到命令式编程和函数式编程在思维方式上的差异。</p>
+<ul>
+<li>过程式编程关注程序运行中的可变状态（在上面的例子里是球在每一时刻的具体位置），并通过程序指令（操作场上的装置）控制可变状态的变化，达到想要的结果（球的位置到达终点）；</li>
+<li>函数式编程着重于程序运行时输出和输出的映射关系（在上面的例子里，输入是球的初始位置，输出则是球的整体轨迹），通过函数调用与函数组合（对场上装置的参数调整，使得球的轨迹发生变化），使得给定的输入产生预期的输出（球的轨迹通过终点）。</li>
+</ul>
+<p>函数式编程中，代码直接操作的往往不是可变的数据，而是函数之间相互调用的关系，代码中更多不是命令式的操作语句，而是声明式的表达式的嵌套。</p>
+<p>为了达成函数式编程的魔法，我们需要对程序员的自由做一个重大限制：<strong>函数式编程中的函数应该是纯函数，即不应该依赖于可变的状态，也不应该修改外部状态。</strong></p>
+<p>你或许会说：“这个条件看上去很苛刻！我们已经太习惯于在函数中读取和操作外部状态，不这样做，我都不知道怎么写代码！”</p>
+<p>但请理解，一时的限制是为了更好的抽象，从而写出更加可读、更具表现力的代码。</p>
+<p>用上面球与场地的例子来说，给定相同的初始位置（输入），通过相同的函数（相同的场上装置的状态），不管重复多少次，都应该给出相同的结果（球通过终点）。</p>
+<p>想象一下如果不是这样会发生什么事情：某个装置使得场地变湿滑，导致结果与场地干燥时不同（结果依赖于可变的外部状态）；某个装置只能使用一次，第二次就不能再使用（修改了外部状态：装置被使用过）。<br>这样的游戏会变得很难玩！</p>
+<p>实际上，你已经经历过这样的限制，但并没有影响你写出好的代码，反而使得代码更具可读性与可维护性。</p>
+<p>下面这个表格有助于帮你回想这些限制：</p>
+<table>
+<thead>
+<tr>
+<th>编程范式</th>
+<th>附加限制</th>
+<th>特征技术</th>
+<th>代表语言</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>结构化编程<br>(Structured Programming)</td>
+<td>限制控制流的转移<br>(GOTO语句)</td>
+<td>条件语句，选择语句，循环语句，子程序</td>
+<td>Fortran, Pascal, C</td>
+</tr>
+<tr>
+<td>面向对象编程<br>(Object Oriented Programming)</td>
+<td>限制对数据结构的修改<br>(非成员函数访问私有变量)</td>
+<td>封装，继承，多态</td>
+<td>Smalltalk, C++, Java, Objective-C</td>
+</tr>
+<tr>
+<td>函数式编程<br>(Functional Programming)</td>
+<td>限制可变状态的访问与修改<br>(纯函数)</td>
+<td>纯函数，头等函数，闭包，柯里化，懒求值</td>
+<td>LISP, OCaml, Haskell</td>
+</tr>
+</tbody></table>
+<p>好了，空谈无益，show me the code! 接下来我将通过几个示例，介绍过程式编程与函数式编程的差异，及函数式编程带来的好处。</p>
+<h1 id="消除可变状态：更易并行化的代码"><a href="#消除可变状态：更易并行化的代码" class="headerlink" title="消除可变状态：更易并行化的代码"></a>消除可变状态：更易并行化的代码</h1><h2 id="消除单个状态"><a href="#消除单个状态" class="headerlink" title="消除单个状态"></a>消除单个状态</h2><p>假如我们想在 Android 平台实现一个函数，可以从指定的数字开始，每秒倒计时减 1，展示倒计时数字，直到数字减到 0。</p>
+<p>为了方便，我们定义下面的工具函数 <code>delayForOneSecond</code>。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">val</span> handler = Handler(Looper.MainLooper())</span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">delayForOneSecond</span><span class="params">(r: <span class="type">Runnable</span>)</span></span> &#123;</span><br><span class="line">    handler.postDelayed(r, <span class="number">1000L</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>按传统的过程式写法，我们需要一个可变状态量，记录当前倒计时到哪个数字，然后间隔一秒将这个变量减 1，展示倒计时，直到数字变为 0。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">var</span> counter = <span class="number">0</span></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">countDownFrom</span><span class="params">(number: <span class="type">Int</span>)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 初始化可变状态</span></span><br><span class="line">    counter = number </span><br><span class="line">    countDown()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">fun</span> <span class="title">countDown</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (counter &lt; <span class="number">0</span>) <span class="keyword">return</span></span><br><span class="line">    println(<span class="string">&quot;count down: <span class="variable">$counter</span>!&quot;</span>)</span><br><span class="line">    <span class="comment">// 变更可变状态</span></span><br><span class="line">    counter--</span><br><span class="line">    <span class="keyword">if</span> (counter &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">        delayForOneSecond &#123;</span><br><span class="line">            countDown()</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在函数式编程中，我们不希望程序执行中存在可变状态。我们可以使用一个称为“状态传递”的技巧，将可变状态转变为函数的入参，在状态变更时，改变函数入参，并调用函数。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将倒计时状态作为函数参数传递</span></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">countDownFrom</span><span class="params">(number: <span class="type">Int</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (number &lt; <span class="number">0</span>) <span class="keyword">return</span></span><br><span class="line">    println(<span class="string">&quot;count down: <span class="variable">$number</span>!&quot;</span>)</span><br><span class="line">    <span class="comment">// 状态变更转化为下次调用的函数参数的变更，本次调用的函数参数在执行过程中保持不变</span></span><br><span class="line">    <span class="keyword">val</span> nextNumber = number - <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> (nextNumber &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">        delayForOneSecond &#123;</span><br><span class="line">            countDownFrom(nextNumber)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>初看起来这两段代码做的事情大同小异，甚至传统带状态的写法更容易理解。但考虑以下扩展需求：</p>
+<ol>
+<li>希望可以展示多于一个正在进行中的倒计时；</li>
+<li>希望可以在多个线程中同时运行倒计时.</li>
+</ol>
+<p>上面代码只涉及一个可变状态，但在实际业务场景中，随着需求迭代需要维护的状态数变多，保证所有状态在所有线程与共享实例都中正确变更的成本也会快速上升。</p>
+<p>而使用函数式编程的写法，由于函数执行时参数保持不变，不存在意外篡改或竞态条件的风险，使用函数式编程的代码只需要很少改造甚至无需改造。</p>
+<p>在需要并行处理的程序代码中，函数式编程便能发挥其真正的威力。</p>
+<h2 id="消除循环变量"><a href="#消除循环变量" class="headerlink" title="消除循环变量"></a>消除循环变量</h2><p>在纯函数式编程中，即使像循环变量这样的概念也可以被消除。我们来看看是怎么做的。</p>
+<p>下面是使用 for 循环遍历列表的代码，其中使用了循环变量。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">process</span><span class="params">(number: <span class="type">Int</span>)</span></span> = println(number)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">processList</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">Int</span>&gt;)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 循环变量：i</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; list.size; i++) &#123;</span><br><span class="line">        process(list[i])</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">processList2</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">Int</span>&gt;)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 循环变量：element</span></span><br><span class="line">    <span class="keyword">for</span> (element <span class="keyword">in</span> list) &#123;</span><br><span class="line">        process(element)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在函数式编程中，可以使用递归代替循环的技巧，从而消除循环：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">processList</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">Int</span>&gt;)</span></span> &#123;</span><br><span class="line">    processList(list, <span class="number">0</span>) <span class="comment">// 初始语句: index = 0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">processList</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">Int</span>&gt;, i: <span class="type">Int</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (i &gt;= list.size) <span class="keyword">return</span> <span class="comment">// 终止条件: i &gt;= list.size()</span></span><br><span class="line">    process(list[i]) <span class="comment">// 循环体</span></span><br><span class="line">    processList(list, i + <span class="number">1</span>) <span class="comment">// 增量语句: i++</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另一种更加简洁的写法，是将需要传递的状态由索引 <code>i</code> 改为列表本身：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">processList</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">Int</span>&gt;)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (list.isEmpty()) <span class="keyword">return</span> <span class="comment">// 终止条件: 空列表</span></span><br><span class="line">    process(list.first()) <span class="comment">// 循环体</span></span><br><span class="line">    processList(list.subList(<span class="number">1</span>, list.size)) <span class="comment">// 增量语句: list = list.subList(1, list.size)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在实际开发中，我们往往不追求完全消除可变状态，而是在保持函数式编程优势的情况下，使代码更易读、执行效率更高。因此以上做法仅仅提供一种思路参考，而非推荐实践。</p>
+<h1 id="使用头等函数：组合的力量"><a href="#使用头等函数：组合的力量" class="headerlink" title="使用头等函数：组合的力量"></a>使用头等函数：组合的力量</h1><p>一种编程语言具有头等函数（First-class Functions），是指在这门语言中，函数可以像普通变量赋值给一个左值、作为函数参数传入，或作为函数返回值返回。</p>
+<p>使用头等函数，我们可以对许多代码进一步抽象，将业务逻辑作为函数参数传入，从而编写通用的的工具函数。</p>
+<p>例如，想编写一个通用的、遍历列表并做处理的函数，可以这样写：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> <span class="title">forEachInList</span><span class="params">(list: <span class="type">List</span>&lt;<span class="type">T</span>&gt;, action: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (list.isEmpty()) <span class="keyword">return</span> <span class="comment">// 终止条件: 空列表</span></span><br><span class="line">    action(list.first()) <span class="comment">// 循环体</span></span><br><span class="line">    forEachInList(list.subList(<span class="number">1</span>, list.size), action) <span class="comment">// 增量语句: list = list.subList(1, list.size)</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">forEachInList(listOf(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>), ::println) </span><br><span class="line"><span class="comment">/* 输出：</span></span><br><span class="line"><span class="comment">1</span></span><br><span class="line"><span class="comment">2</span></span><br><span class="line"><span class="comment">3</span></span><br><span class="line"><span class="comment">4</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<p>实际上，Kotlin 已经帮我们实现了这样的函数(<code>Collections.forEach</code>)：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> Iterable<span class="type">&lt;T&gt;</span>.<span class="title">forEach</span><span class="params">(action: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span>: <span class="built_in">Unit</span> &#123;</span><br><span class="line">    <span class="keyword">for</span> (element <span class="keyword">in</span> <span class="keyword">this</span>) action(element)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再尝试一下，对数组求和呢？</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 数组求和</span></span><br><span class="line"><span class="keyword">val</span> list = listOf(<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> sum = <span class="number">0</span></span><br><span class="line">list.forEach &#123;</span><br><span class="line">    sum += it</span><br><span class="line">&#125;</span><br><span class="line">println(sum) <span class="comment">// 输出: 10</span></span><br></pre></td></tr></table></figure>
+
+<p>这样写不够“函数式”，因为我们用到了可变状态 <code>sum</code>。通过递归消除循环变量，我们可以改成这样：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> List<span class="type">&lt;Int&gt;</span>.<span class="title">sumUp</span><span class="params">()</span></span>: <span class="built_in">Int</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (isEmpty()) <span class="keyword">return</span> <span class="number">0</span> <span class="comment">// 终止条件: 空列表</span></span><br><span class="line">    <span class="keyword">return</span> first() + subList(<span class="number">1</span>, size).sumUp()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>进一步抽象，如果希望遍历数组，并对其中的数据做归并。这里的归并操作可以不仅是累加，还可以是过滤、收集等：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> List<span class="type">&lt;T&gt;</span>.<span class="title">accumulate</span><span class="params">(empty: <span class="type">R</span>, accumulator: (<span class="type">T</span>, <span class="type">R</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">if</span> (isEmpty()) <span class="keyword">return</span> empty <span class="comment">// 终止条件: 空列表</span></span><br><span class="line">    <span class="keyword">return</span> accumulator(last(), subList(<span class="number">0</span>, size - <span class="number">1</span>).accumulate(empty, accumulator))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意！这里反转了列表遍历的顺序，这样 <code>accumulator</code> 方法执行时，才会从列表的第一个项目开始归并。</p>
+<p>因为这里用到的递归的写法，导致计算顺序与循环不同。</p>
+<p>在递归压栈时，先传入的参数压在栈底，后传入的参数在栈顶，直到遇到终止条件。</p>
+<p>递归计算并退栈时，是从栈顶到栈底一层层计算的，因此后传入的参数会先被计算，计算的顺序与参数传入的顺序相反。<br>为了使 <code>accumulator</code> 函数的编写者能更符合直觉地编写累加函数（按列表顺序先后取列表元素），压栈的顺序需要取列表顺序的逆序。</p>
+<p>假定传入列表为 <code>listOf(1, 2, 3, 4)</code>，<code>accumulator = &#123; a, b -&gt; a + b &#125;</code>，压栈和计算结果为：</p>
+<table>
+<thead>
+<tr>
+<th>栈深度</th>
+<th><code>accumulator</code>参数列表</th>
+<th>计算结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>4, listOf(1, 2, 3).accumulate(...)</code></td>
+<td>4 + <strong>6</strong> &#x3D; 10</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>3, listOf(1, 2).accumulate(...)</code></td>
+<td>3 + <strong>3</strong> &#x3D; 6</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>2, listOf(1).accumulate(...)</code></td>
+<td>2 + <strong>1</strong> &#x3D; 3</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>1, emptyList().accumulate(...)</code></td>
+<td>1 + <strong>0</strong> &#x3D; 1</td>
+</tr>
+</tbody></table>
+<p>注意压栈是从上往下进行，而计算并退栈是从下往上进行。退栈时返回的结果用粗体标明。</p>
+<p>回到 <code>accumulate</code> 上来，我们可以用它重写之前的定义的 <code>sumUp</code> 函数:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> List<span class="type">&lt;Int&gt;</span>.<span class="title">sumUp</span><span class="params">()</span></span> = accumulate&lt;<span class="built_in">Int</span>, <span class="built_in">Int</span>&gt;(<span class="number">0</span>) &#123; element, sum -&gt; element + sum &#125;</span><br><span class="line">list.sumUp() <span class="comment">// 输出：10</span></span><br></pre></td></tr></table></figure>
+<p>从 <code>accumulate</code> 基础上，还可以组合出 <code>filter</code> 函数：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> List<span class="type">&lt;T&gt;</span>.<span class="title">filter</span><span class="params">(predicate: (<span class="type">T</span>) -&gt; <span class="type">Boolean</span>)</span></span>: List&lt;T&gt; = accumulate(emptyList()) &#123; element, result -&gt;</span><br><span class="line">    <span class="keyword">if</span> (predicate(element)) result + element <span class="keyword">else</span> result </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体到业务逻辑：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> List<span class="type">&lt;Int&gt;</span>.<span class="title">getElementsGreaterThanTen</span><span class="params">()</span></span>: List&lt;<span class="built_in">Int</span>&gt; = filter&lt;<span class="built_in">Int</span>&gt; &#123; it &gt; <span class="number">10</span> &#125;</span><br></pre></td></tr></table></figure>
+<p>我们完全没有用到面向对象编程的继承、抽象接口等特性，仅仅使用高阶函数的组合，就完成了抽象逻辑与具体业务的分离！</p>
+<h2 id="闭包：函数运行的上下文"><a href="#闭包：函数运行的上下文" class="headerlink" title="闭包：函数运行的上下文"></a>闭包：函数运行的上下文</h2><p>在上面的一些例子中，我们不自觉地在 Lambda 表达式的函数体中，访问了其函数参数之外的变量，而程序代码也像我们想象中一样的运行了。</p>
+<p>当你仔细思考这个问题时，你会发现这个实现并不是显而易见的。回顾一下在“消除可变状态”中提到的代码块：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> nextNumber = number - <span class="number">1</span></span><br><span class="line"><span class="keyword">if</span> (nextNumber &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">    delayForOneSecond &#123;</span><br><span class="line">        countDownFrom(nextNumber)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在作为 <code>delayForOneSecond</code> 参数的 Lambda 表达式中（其类型为 <code>Runnable</code>），访问了 <code>nextNumber</code> 常量。</p>
+<p><code>nextNumber</code> 常量并不是在这个 <code>Runnable</code> 运行时的环境中定义的，而是在其外层的 <code>countDownFrom</code> 方法中声明并计算出相应值的。</p>
+<p>当 <code>Runnable.run()</code> 真正运行时，定义 <code>nextNumber</code> 的环境，也就是上一秒的 <code>countDownFrom</code> 方法，应该早已执行结束并返回，其函数调用栈内的所有临时变量应该都会退栈清除才对！</p>
+<p><em>我们之所以能在函数中自由地访问其<strong>定义时上下文</strong>的变量，而不会出现任何异常，是语言和编译器帮我们做了许多工作才能达成的。</em></p>
+<p>简单地说，当函数被创建并作为参数被传递时，真正被传递的不仅包含了这个函数指针本身，还有<strong>运行这个函数所需的上下文环境</strong>。在这个例子中，上下文环境就包含了在函数内部访问的外部变量 <code>nextNumber</code> 的值。</p>
+<p>函数的定义与运行函数的上下文的结合，就被称为”<strong>闭包(Closure)</strong>“。</p>
+<p>有了闭包，就能使函数即使脱离了定义函数时的上下文环境，也能独立运行。</p>
+<p>而“将函数访问的外部变量作为上下文环境的一部分保存到闭包，使其能在原本的上下文销毁（如函数退栈，对象被回收）后仍然能继续存在”的动作，就称为“<strong>变量捕获（variable capture）</strong>”</p>
+<p>“闭包”这样一个抽象概念，如何实现呢？以 JVM 中匿名内部类或 Lambda 表达式的实现为例，上面的 <code>Runnable</code> 实现就类似于下面（实际情况要比这个复杂，此处仅做简化演示）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 编译器合成的类定义，</span></span><br><span class="line"> synthetic <span class="keyword">final</span> <span class="keyword">class</span> <span class="title class_">delayForOneSecond$$Lambda0</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> <span class="type">int</span> nextNumber;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在构造函数中将上下文作为参数捕获，作为成员变量保存</span></span><br><span class="line">    delayForOneSecond$$Lambda0(<span class="type">int</span> nextNumber) &#123;</span><br><span class="line">        <span class="built_in">this</span>.nextNumber = nextNumber;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        countDownFrom(nextNumber);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 函数调用处</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">int</span> <span class="variable">nextNumber</span> <span class="operator">=</span> number - <span class="number">1</span>;</span><br><span class="line"><span class="comment">// nextNumber 参数作为对象的构造函数参数被捕获，从而可以脱离定义时的上下文存在</span></span><br><span class="line">delayForOneSecond(<span class="keyword">new</span> <span class="title class_">delayForOneSecond$$Lambda0</span>(nextNumber));</span><br></pre></td></tr></table></figure>
+
+<h2 id="柯里化：组合函数的万能胶水"><a href="#柯里化：组合函数的万能胶水" class="headerlink" title="柯里化：组合函数的万能胶水"></a>柯里化：组合函数的万能胶水</h2><p>面向对象编程中，常常会遇到上层抽象与下层实现之间接口不一致，需要编写适配器（Adapter）将其组合到一起工作。</p>
+<p>函数式编程中，也会遇到上层提供的函数与下层的具体业务之间，由于抽象程度不同，要求的函数参数不一致。这时就要用到被称为<strong>柯里化（Currying）</strong>的技巧，将其组合到一起工作。</p>
+<p>什么是“柯里化”？柯里化是一种将多参数函数转换为一系列单参数函数的过程，它将外部函数的参数<em>捕获到</em>内部函数的<strong>闭包</strong>，并<strong>返回内部函数</strong>，从而减少了函数的参数个数。</p>
+<p>我们举一个实际的例子看看。比如，上层框架提供了一个日志方法，允许我们以不同的级别和标签记录日志：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> LEVEL_VERBOSE = <span class="number">0</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> LEVEL_DEBUG = <span class="number">1</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> LEVEL_INFO = <span class="number">2</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> LEVEL_WARNING = <span class="number">3</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> LEVEL_ERROR = <span class="number">4</span></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">log</span><span class="params">(level: <span class="type">Int</span>, tag: <span class="type">String</span>, message: <span class="type">String</span>)</span></span> &#123;</span><br><span class="line">    println(<span class="string">&quot;[<span class="variable">$level</span>][<span class="variable">$tag</span>] <span class="variable">$message</span>&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于一个具体业务，可能希望使用固定的标签来记录日志。平凡的做法，会在这个业务内部定义一个函数：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">logMyBusiness</span><span class="params">(level: <span class="type">Int</span>, message: <span class="type">String</span>)</span></span> = log(level, <span class="string">&quot;MyBusiness&quot;</span>, message)</span><br></pre></td></tr></table></figure>
+<p>但每个业务都定义一遍这样的函数，也稍显繁琐。另外，当可定义的参数增长时，可以预见重复的样板代码也会随之增长。</p>
+<p>又例如，某个三方库(假定叫他 GoodLib)提供了一个接口，用于写入这个三方库内部产生的日志。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 日志接口定义</span></span><br><span class="line"><span class="function"><span class="keyword">fun</span> <span class="keyword">interface</span> Logger &#123;</span></span><br><span class="line">    <span class="function"><span class="keyword">fun</span> <span class="title">log</span><span class="params">(channel: <span class="type">String</span>, message: <span class="type">String</span>)</span></span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 设置日志接口实现</span></span><br><span class="line"><span class="keyword">object</span> GoodLibSettings &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">val</span> defaultLogger = Logger() &#123; channel, message -&gt; println(<span class="string">&quot;[<span class="variable">$channel</span>] <span class="variable">$message</span>&quot;</span>)&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> logger: Logger = defaultLogger</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在不同场景下，可能需要将日志以不同等级写入。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 适配之前提供的日志方法</span></span><br><span class="line">GoodLibSettings.logger = Logger() &#123; channel, message -&gt;</span><br><span class="line">    <span class="keyword">if</span> (channel == <span class="string">&quot;error&quot;</span>) &#123;</span><br><span class="line">        log(LEVEL_ERROR, <span class="string">&quot;GoodLib-<span class="variable">$channel</span>&quot;</span>, message)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        log(LEVEL_INFO, <span class="string">&quot;GoodLib-<span class="variable">$channel</span>&quot;</span>, message)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>总结上面问题的共同点：上层框架提供的函数接收三个参数：<code>level, tag, message</code>，而下层代码使用时，只希望使用一个参数 <code>message</code> 就足够了。</p>
+<p>如果我们转换思路，不直接定义业务特定的函数，而是提供一个“函数工厂”，业务可以根据自己需要生成对应的函数，就可以减少重复的样板代码。函数柯里化就是这样的“函数工厂”。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> <span class="title">loggerOf</span><span class="params">(level: <span class="type">Int</span>, tag: <span class="type">String</span>)</span></span>: (String) -&gt; <span class="built_in">Unit</span> = &#123; message -&gt;</span><br><span class="line">    log(level, tag, message)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的函数<em>捕获</em>了 <code>level, tag</code> 这两个参数，将其作为<strong>闭包</strong>传递给了上层函数 <code>log</code>，并返回了仅接收一个参数 <code>message</code> 的匿名函数(类型签名为<code>(String) -&gt; Unit</code>)，供下层业务使用。这个过程就是柯里化。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 函数式编程中，函数实例可以赋值给常量或者变量。</span></span><br><span class="line"><span class="keyword">val</span> bizLogDebug = loggerOf(LEVEL_DEBUG, <span class="string">&quot;MyBusiness&quot;</span>)</span><br><span class="line"><span class="keyword">val</span> bizLogInfo = loggerOf(LEVEL_INFO, <span class="string">&quot;MyBusiness&quot;</span>)</span><br><span class="line"><span class="keyword">val</span> otherBizLogInfo = loggerOf(LEVEL_INFO, <span class="string">&quot;OtherBusiness&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 调用函数实例，就像调用其他常规方式定义的函数一样</span></span><br><span class="line">bizLogDebug(<span class="string">&quot;debug message&quot;</span>)</span><br><span class="line">bizLogInfo(<span class="string">&quot;info message&quot;</span>)</span><br><span class="line">otherBizLogInfo(<span class="string">&quot;info message&quot;</span>)</span><br><span class="line"><span class="comment">/* 输出：</span></span><br><span class="line"><span class="comment">[1][MyBusiness] debug message</span></span><br><span class="line"><span class="comment">[2][MyBusiness] info message</span></span><br><span class="line"><span class="comment">[2][OtherBusiness] info message</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GoodLibSettings.logger = Logger() &#123; channel, message -&gt;</span><br><span class="line">    <span class="keyword">val</span> level = <span class="keyword">if</span> (channel == <span class="string">&quot;error&quot;</span>) LEVEL_ERROR <span class="keyword">else</span> LEVEL_INFO</span><br><span class="line">    <span class="keyword">val</span> tag = <span class="string">&quot;GoodLib-<span class="variable">$channel</span>&quot;</span></span><br><span class="line">    loggerOf(level, tag)(message)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果上层框架要求的函数参数比下层业务使用的要少，也可以通过柯里化的技巧实现转换。下面举个例子。</p>
+<p>假定有以下数据类：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">FavoriteItem</span>(<span class="keyword">val</span> userId: <span class="built_in">Long</span>, <span class="keyword">val</span> favorite: String) &#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">toString</span><span class="params">()</span></span>: String = <span class="string">&quot;FavoriteItem(userId:<span class="variable">$userId</span>, favorite:<span class="variable">$favorite</span>)&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们希望为其实现按 <code>userId</code> 过滤列表的方法：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fun</span> List<span class="type">&lt;FavoriteItem&gt;</span>.<span class="title">filterByUserId</span><span class="params">(userId: <span class="type">Long</span>)</span></span> = filter &#123; it.userId == userId &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> favoriteItemList = listOf(FavoriteItem(<span class="number">666L</span>, <span class="string">&quot;apple&quot;</span>), FavoriteItem(<span class="number">114514L</span>, <span class="string">&quot;banana&quot;</span>))</span><br><span class="line">favoriteItemList.filterByUserId(<span class="number">666L</span>)</span><br><span class="line"><span class="comment">/* 输出：</span></span><br><span class="line"><span class="comment">[FavoriteItem(userId:666, favorite:apple)]</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+<p><code>filterByUserId</code> 函数体接收了 <code>userId</code> 参数，将其通过闭包捕获，返回了一个仅接收 <code>FavoriteItem</code> 类型参数的匿名函数（类型签名为<code>(FavoriteItem) -&gt; Boolean</code>），再立即作为 <code>filter</code> 函数的参数使用。<br>仅一行简洁优雅的代码，就通过柯里化实现了上层方法的复用与自定义逻辑的封装。</p>
+<h1 id="消除可变容器：减少错误，提升效率"><a href="#消除可变容器：减少错误，提升效率" class="headerlink" title="消除可变容器：减少错误，提升效率"></a>消除可变容器：减少错误，提升效率</h1><p>让我们在前面处理列表的基础上继续扩展功能，看看函数式编程在容器类上应用时的威力。</p>
+<p>这里希望筛选出列表中大于 10 的数字。为了着重强调不可变容器的缺陷，我们用 Java 而非 Kotlin 编写。</p>
+<p>传统的写法是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"> List&lt;Integer&gt; <span class="title function_">filterNumbersGreaterThanTen</span><span class="params">(List&lt;Integer&gt; list)</span> &#123;</span><br><span class="line">    ArrayList&lt;Integer&gt; numbersGreaterThanTen = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;()</span><br><span class="line">    <span class="keyword">for</span>(Integer number: list) &#123;</span><br><span class="line">        <span class="keyword">if</span> (number &gt; <span class="number">10</span>) numbersGreaterThanTen.add(number);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> numbersGreaterThanTen;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用 Streams API 的写法是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"> List&lt;Integer&gt; <span class="title function_">filterNumbersGreaterThanTen</span><span class="params">(List&lt;Integer&gt; list)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> list.stream()</span><br><span class="line">        .filter(number -&gt; number &gt; <span class="number">10</span>)</span><br><span class="line">        .collect(Collectors.toList());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>假设上面的需求变更为“取前 5 个大于 10 的元素，并累加”，传统的修改方法是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">filterFiveNumbersGreaterThanTenAndSum</span><span class="params">(List&lt;Integer&gt; list)</span> &#123;</span><br><span class="line">    ArrayList&lt;Integer&gt; numbersGreaterThanTen = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    <span class="keyword">for</span>(Integer number : list) &#123;</span><br><span class="line">        <span class="keyword">if</span> (numbersGreaterThanTen.size() &gt;= <span class="number">5</span>) <span class="keyword">break</span>; <span class="comment">// 新增</span></span><br><span class="line">        <span class="keyword">if</span> (number &gt; <span class="number">10</span>) numbersGreaterThanTen.add(number);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">int</span> <span class="variable">sum</span> <span class="operator">=</span> <span class="number">0</span>; <span class="comment">// 新增</span></span><br><span class="line">    <span class="keyword">for</span> (Integer n : numbersGreaterThanTen) &#123; <span class="comment">// 新增</span></span><br><span class="line">        sum += n; <span class="comment">// 新增</span></span><br><span class="line">    &#125; <span class="comment">// 新增</span></span><br><span class="line">    <span class="keyword">return</span> sum; <span class="comment">// 修改</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>使用 Streams API，函数式编程的修改方法是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">filterFiveNumbersGreaterThanTenAndSum2</span><span class="params">(List&lt;Integer&gt; list)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> list.stream()</span><br><span class="line">            .filter(number -&gt; number &gt; <span class="number">10</span>)</span><br><span class="line">            .limit(<span class="number">5</span>) <span class="comment">//新增</span></span><br><span class="line">            .reduce(Integer::sum).orElse(<span class="number">0</span>); <span class="comment">// 修改</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两者在代码复杂度、可读性、可维护性上的差异一目了然。</p>
+<p>此外，Java 中容器接口默认可变，在工程实践中带来了无数麻烦：</p>
+<ul>
+<li>业务代码可能意外篡改上层使用的可变容器，导致数据不一致;</li>
+<li>多线程同时修改可变容器，容易导致 <code>ConcurrentModificationException</code></li>
+<li>缺乏“不可变容器”的接口与概念，不可变容器只能通过抛出异常来曲折实现，而这一实现方式违背了里氏替换原则。</li>
+</ul>
+<p>以下面代码为例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Integer&gt; filtered = filterNumbersGreaterThanTen(list);</span><br><span class="line">showList(filtered); <span class="comment">// 可能抛到主线程执行，导致可能展示 filtered.remove 后的列表，这并不是我们期望的</span></span><br><span class="line"><span class="comment">// 返回不可变列表时，修改列表会抛出运行时错误，在编译期检查不到这样的错误</span></span><br><span class="line"><span class="comment">// 返回可变列表时，修改列表可能导致使用同一个列表引用的逻辑出现错误或 `ConcurrentModificationException`，这类错误很难排查</span></span><br><span class="line">filtered.remove(<span class="number">11</span>);</span><br></pre></td></tr></table></figure>
+
+<p>Java 16 中引入的 <code>Stream.toList()</code> 方法返回的是不可变列表（<code>Collectors.toList()</code> 返回的是可变列表），也是为了鼓励使用不可变容器。</p>
+<p>Kotlin 的容器接口(<code>Collection</code>&#x2F;<code>Map</code>&#x2F;<code>Set</code>&#x2F;<code>List</code>)默认不可变，而可变容器是扩展自不可变容器的独立接口 <code>MutableCollection</code>&#x2F;<code>MutableMap</code>&#x2F;<code>MutableSet</code>&#x2F;<code>MutableList</code>。<br>这样，即使函数内部处理时使用了可变容器，返回的容器对象也默认是不可变的（不存在 <code>add/remove</code> 这样修改容器的接口，从而在编译期检查到错误）。</p>
+<h1 id="懒求值：消除多余操作"><a href="#懒求值：消除多余操作" class="headerlink" title="懒求值：消除多余操作"></a>懒求值：消除多余操作</h1><p>在使用 Java Streams API 时，你或许会有这样的担心：如果我使用 <code>limit()</code> 函数声明只取列表中的头几个元素，实际执行时会不会先取全部元素，再移除多余的元素？在数据量大时会不会影响性能？</p>
+<p>不必担心，因为 Java Streams API 的函数调用都是懒求值的：当你链式调用 <code>filter / map / limit</code> 这类返回 <code>Stream</code> 对象的函数时，<code>Stream</code> 内部并不会立即执行声明的操作，而是将其暂存下来。<br>只有当 <code>Stream</code> 进入末端操作（转换为列表、容器、进行归并）时，才会实际发生计算，而多余的计算不会执行。</p>
+<p><strong>懒求值（Lazy evaluation）</strong>的概念对许多人应该并不陌生。最常见的，使用逻辑或串联的表达式中，如果前面的表达式求值结果为 <code>true</code>，则后面的表达式不会被求值，因为整个表达式的值已经确定为 <code>true</code> 了，只有真正需要子表达式的值来判断整体的值时，子表达式才会求值。这就是一种懒求值。<br>与之相对的是<strong>积极求值（Eager evaluation）</strong>，也就是表达式定义出现时就对其进行求值。</p>
+<p>函数式编程中头等函数的设计，方便了懒求值的应用。将函数作为参数传递时，执行函数所需的上下文也会一并捕获，作为闭包传递。因此，我们可以延迟函数的执行，直到真正需要获取函数执行结果时，才对函数进行求值。</p>
+<p>Kotlin 中，针对容器类操作，既有积极求值的 API (<code>kotlin.collections.filter/map/take</code>)，也有类似 Java Streams API，使用懒求值的 Sequences API。下面是 <a target="_blank" rel="noopener" href="https://kotlinlang.org/docs/sequences.html">Kotlin 官方文档</a>中给出的两个例子：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> words = <span class="string">&quot;The quick brown fox jumps over the lazy dog&quot;</span>.split(<span class="string">&quot; &quot;</span>)</span><br><span class="line"><span class="keyword">val</span> lengthsList = words.filter &#123; println(<span class="string">&quot;filter: <span class="variable">$it</span>&quot;</span>); it.length &gt; <span class="number">3</span> &#125;</span><br><span class="line">    .map &#123; println(<span class="string">&quot;length: <span class="subst">$&#123;it.length&#125;</span>&quot;</span>); it.length &#125;</span><br><span class="line">    .take(<span class="number">4</span>)</span><br><span class="line"></span><br><span class="line">println(<span class="string">&quot;Lengths of first 4 words longer than 3 chars:&quot;</span>)</span><br><span class="line">println(lengthsList)</span><br><span class="line"><span class="comment">/* 输出：</span></span><br><span class="line"><span class="comment">filter: The</span></span><br><span class="line"><span class="comment">filter: quick</span></span><br><span class="line"><span class="comment">filter: brown</span></span><br><span class="line"><span class="comment">filter: fox</span></span><br><span class="line"><span class="comment">filter: jumps</span></span><br><span class="line"><span class="comment">filter: over</span></span><br><span class="line"><span class="comment">filter: the</span></span><br><span class="line"><span class="comment">filter: lazy</span></span><br><span class="line"><span class="comment">filter: dog</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">length: 4</span></span><br><span class="line"><span class="comment">length: 4</span></span><br><span class="line"><span class="comment">Lengths of first 4 words longer than 3 chars:</span></span><br><span class="line"><span class="comment">[5, 5, 5, 4]</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> words = <span class="string">&quot;The quick brown fox jumps over the lazy dog&quot;</span>.split(<span class="string">&quot; &quot;</span>)</span><br><span class="line"><span class="comment">//convert the List to a Sequence</span></span><br><span class="line"><span class="keyword">val</span> wordsSequence = words.asSequence()</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> lengthsSequence = wordsSequence.filter &#123; println(<span class="string">&quot;filter: <span class="variable">$it</span>&quot;</span>); it.length &gt; <span class="number">3</span> &#125;</span><br><span class="line">    .map &#123; println(<span class="string">&quot;length: <span class="subst">$&#123;it.length&#125;</span>&quot;</span>); it.length &#125;</span><br><span class="line">    .take(<span class="number">4</span>)</span><br><span class="line"></span><br><span class="line">println(<span class="string">&quot;Lengths of first 4 words longer than 3 chars&quot;</span>)</span><br><span class="line"><span class="comment">// terminal operation: obtaining the result as a List</span></span><br><span class="line">println(lengthsSequence.toList())</span><br><span class="line"><span class="comment">/* 输出：</span></span><br><span class="line"><span class="comment">Lengths of first 4 words longer than 3 chars</span></span><br><span class="line"><span class="comment">filter: The</span></span><br><span class="line"><span class="comment">filter: quick</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">filter: brown</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">filter: fox</span></span><br><span class="line"><span class="comment">filter: jumps</span></span><br><span class="line"><span class="comment">length: 5</span></span><br><span class="line"><span class="comment">filter: over</span></span><br><span class="line"><span class="comment">length: 4</span></span><br><span class="line"><span class="comment">[5, 5, 5, 4]</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+<p>可以注意到以下两点：</p>
+<ol>
+<li><code>kotlin.collections</code> API 对列表元素的操作是立即执行的（内部输出在打印标题语句之前）；而 Sequences API 对 <code>Sequence</code> 中元素的操作延迟到了 <code>toList()</code> 调用之后才实际发生（内部输出在打印标题语句之后）</li>
+<li><code>kotlin.collections</code> API 先对列表中的所有元素进行了 <code>filter</code> 操作，再对过滤后的列表所有元素进行了 <code>map</code> 操作，最后将映射后的列表缩减到要求的大小；而 Sequence API 在列表中的元素达到 4 个之后，就停止了 <code>filter</code> 和 <code>map</code> 操作，没有多余的计算发生。</li>
+</ol>
+<p><img src="https://kotlinlang.org/docs/images/list-processing.png" alt="list processing"></p>
+<p><img src="https://kotlinlang.org/docs/images/sequence-processing.png" alt="sequence processing"></p>
+<p>这就是懒求值的好处：直到收集完所有信息并不得不完成计算时，计算才会发生，此时，我们可以利用之前收集到的信息消除冗余操作，避免无谓的计算资源的消耗。</p>
+<p>不过，无论是 Java Streams API，还是 Kotlin Sequences API，实现懒求值的代价是一些额外的性能开销，在小的集合上，这些 API 的效率可能不如传统的积极求值方式，使用者应该根据实际情况选择合适的 API。</p>
+<h1 id="硬币的反面：性能与可读性"><a href="#硬币的反面：性能与可读性" class="headerlink" title="硬币的反面：性能与可读性"></a>硬币的反面：性能与可读性</h1><p>如果你是初次接触函数式编程的新手，看了这些眼花缭乱的例子，你或许会对这种新颖的组织程序逻辑的方式与“状态不可变”的思想感到新奇。</p>
+<p>但在拥抱函数式编程之前，你或许还有一些不确定：</p>
+<ol>
+<li><strong>函数式编程会影响性能吗？</strong> 将过程式的写法改写成函数式写法后，平白无故多了许多次函数调用，带来压栈出栈的开销；每次函数作为参数传递时，又会创建闭包，这样做对性能是否有影响？</li>
+<li><strong>函数式编程是否会导致项目的可读性与可维护性变差？</strong> 相对于传统编程范式，函数式编程可以将函数作为函数参数或返回值，不熟悉函数式编程的人员阅读这种代码时容易感到困惑。另外，函数式编程的特点，使得其代码执行流不容易一下子看出来（控制经常会从一个函数转移到另一个函数，而这些函数又往往是作为函数参数传入的，增加了复杂度），也增大了调试程序的难度。</li>
+</ol>
+<p>这些问题的答案也不是简单的“是”或“否”能概括的，经常需要具体情况具体分析。</p>
+<h2 id="函数式编程的性能问题"><a href="#函数式编程的性能问题" class="headerlink" title="函数式编程的性能问题"></a>函数式编程的性能问题</h2><p><strong>简短回答</strong>：<br>某些情况下，函数式编程可能会负面影响性能，但大多数情况下不像你想象的那么大。大多数情况下，你更应该关心更高级的抽象是否带来了开发速度与项目管理上的优势。此外，函数式编程使得编写大规模并行代码变得更容易，在某些场景下（服务器编程、并行计算）会提供性能优势。</p>
+<p><strong>较长的回答</strong>：<br>函数式编程的一些特征，会使其在运行时使用更多的内存空间与计算资源，具体来说体现于以下方面：</p>
+<ol>
+<li><strong>上下文切换频繁</strong>：函数式编程往往会对方法进行过度包装，产生许多中间调用，导致上下文切换的性能开销。</li>
+<li><strong>资源占用</strong>：为了实现对象状态的不可变，函数式编程倾向于创建新的对象，这会对垃圾回收产生压力。</li>
+<li><strong>递归陷阱</strong>：函数式编程中，为了实现迭代，通常会采用递归操作，但递归可能导致性能问题。</li>
+</ol>
+<p>针对这些问题，现代编程语言（特别是鼓励函数式编程范式的语言）在编译时与运行时，会进行大量的性能优化。</p>
+<p>编译时常见的优化策略有：</p>
+<ol>
+<li><strong>内联（Inlining）</strong>：编译器可以将函数调用处的代码直接替换为函数体，减少函数调用开销。</li>
+<li><strong>尾递归优化（Tail recursion optimization）</strong>：对尾递归函数进行优化，通过消除压栈退栈操作，避免递归栈溢出。</li>
+<li><strong>常量折叠（Constant Folding）</strong>：在编译时计算常量表达式的值，减少运行时计算开销。</li>
+<li><strong>静态类型检查</strong>：在编译时检查类型错误，避免运行时类型转换开销。</li>
+</ol>
+<p>运行时常见的优化策略有：</p>
+<ol>
+<li><strong>缓存</strong>：缓存中间结果，避免重复计算。</li>
+<li><strong>懒加载（Lazy Evaluation）</strong>：延迟计算，只在需要时才进行计算，减少不必要的开销。</li>
+<li><strong>不可变数据结构</strong>：使用针对不可变对象进行优化的数据结构（如写时复制列表），避免频繁的对象创建和拷贝，并减少内存占用。</li>
+<li><strong>并发和并行</strong>：对于明确没有副作用的代码块，可以利用多线程并发执行任务，提高性能。</li>
+</ol>
+<h2 id="函数式编程的可读性与可维护性问题"><a href="#函数式编程的可读性与可维护性问题" class="headerlink" title="函数式编程的可读性与可维护性问题"></a>函数式编程的可读性与可维护性问题</h2><p><strong>简短回答</strong>：<br>用好函数式编程，确实需要开发者对其有一定程度了解，对开发者的逻辑思维能力提出了更高要求，但这对任何编程范式或技术来说都是如此。工程使用中应当扬长避短，将函数式编程范式用在其适合的领域。</p>
+<p><strong>较长的回答</strong>：<br>软件工程没有银弹，正如其他所有编程范式一样，大量使用函数式编程的实际工程项目中，不可避免会出现一些可读性与可维护性问题，典型的如下：</p>
+<ol>
+<li><strong>嵌套函数层级过深</strong>：函数式编程使用函数组合与嵌套实现封装与模块化，但就像面向对象编程过于复杂的继承关系会使代码难以阅读和维护，函数式编程中嵌套函数层级过深，也容易导致可读性和可维护性降低；</li>
+<li><strong>隐式依赖</strong>：函数式编程中，参数的输入与输出除了通过参数列表与返回值传递，还可能通过闭包或其他上下文传递。这可能造成不易发现的隐式依赖，增加代码重构与问题排查的难度。</li>
+<li><strong>新人训练成本较高</strong>：对于习惯了过程式与面向对象编程，而不熟悉函数式编程的新人，上手项目可能需要一定时间，因为常见的一些概念（可变状态与数据结构，类封装）在函数式编程中并没有对应物，而头等函数、状态传递、柯里化等函数式编程的概念需要多加联系才能理解并掌握。</li>
+<li><strong>调试难度较大</strong>：函数式编程中不鼓励使用可变状态，因此调试时往往不能直接修改状态来查看效果；在不可避免地需要处理副作用的逻辑时（如IO操作、网络请求），往往难以追踪其状态变化。</li>
+</ol>
+<p>针对函数式编程的特点，最好是将其应用于其适合的领域，而不是试图将其用于解决所有业务问题。</p>
+<ol>
+<li><strong>适合的领域</strong>：<ul>
+<li><strong>数学和科学问题</strong>：函数式编程的数学基础使其在解决数学和科学领域的问题时非常有效。纯函数的不变性有助于确保正确性。</li>
+<li><strong>数据处理和转换</strong>：函数式编程适用于数据流处理、转换和过滤。例如，处理大量数据、清洗数据、映射、过滤等操作。</li>
+<li><strong>并发和分布式系统</strong>：函数式编程的不可变性和纯函数特性使其在并发和分布式环境中更易于调试和维护。</li>
+</ul>
+</li>
+<li><strong>不适合的领域</strong>：<ul>
+<li><strong>复杂业务逻辑</strong>：对于复杂的业务逻辑，函数式编程可能过于抽象，难以理解和维护。在这些情况下，面向对象编程可能更合适。</li>
+<li><strong>性能要求极高的场景</strong>：函数式编程的函数调用开销较大，不适合对性能要求极高的场景。在这些情况下，结构化编程或优化的面向对象编程可能更合适。</li>
+<li><strong>与外部状态强相关的问题</strong>：函数式编程不擅长处理与外部状态强相关的问题，例如GUI应用程序、游戏引擎等。</li>
+</ul>
+</li>
+</ol>
+<h1 id="进一步阅读"><a href="#进一步阅读" class="headerlink" title="进一步阅读"></a>进一步阅读</h1><ul>
+<li><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1Zg4y1r7n3/?share_source=copy_web&vd_source=b3eb8a434e0491220a8192266e606984">【熟】代码美学：亲爱的函数式大佬</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/57972301">Y分钟入门lambda演算 - 李欣宜的文章 - 知乎</a></li>
+<li><a target="_blank" rel="noopener" href="https://ruanyifeng.com/blog/2017/02/fp-tutorial.html">函数式编程入门教程</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%9E%B6%E6%9E%84/" rel="tag"># 架构</a>
+              <a href="/tags/Kotlin/" rel="tag"># Kotlin</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/1377966510/" rel="prev" title="一些 Android 开发经验包">
+      <i class="fa fa-chevron-left"></i> 一些 Android 开发经验包
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B"><span class="nav-text">什么是函数式编程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B6%88%E9%99%A4%E5%8F%AF%E5%8F%98%E7%8A%B6%E6%80%81%EF%BC%9A%E6%9B%B4%E6%98%93%E5%B9%B6%E8%A1%8C%E5%8C%96%E7%9A%84%E4%BB%A3%E7%A0%81"><span class="nav-text">消除可变状态：更易并行化的代码</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B6%88%E9%99%A4%E5%8D%95%E4%B8%AA%E7%8A%B6%E6%80%81"><span class="nav-text">消除单个状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B6%88%E9%99%A4%E5%BE%AA%E7%8E%AF%E5%8F%98%E9%87%8F"><span class="nav-text">消除循环变量</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E5%A4%B4%E7%AD%89%E5%87%BD%E6%95%B0%EF%BC%9A%E7%BB%84%E5%90%88%E7%9A%84%E5%8A%9B%E9%87%8F"><span class="nav-text">使用头等函数：组合的力量</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AD%E5%8C%85%EF%BC%9A%E5%87%BD%E6%95%B0%E8%BF%90%E8%A1%8C%E7%9A%84%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="nav-text">闭包：函数运行的上下文</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%AF%E9%87%8C%E5%8C%96%EF%BC%9A%E7%BB%84%E5%90%88%E5%87%BD%E6%95%B0%E7%9A%84%E4%B8%87%E8%83%BD%E8%83%B6%E6%B0%B4"><span class="nav-text">柯里化：组合函数的万能胶水</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B6%88%E9%99%A4%E5%8F%AF%E5%8F%98%E5%AE%B9%E5%99%A8%EF%BC%9A%E5%87%8F%E5%B0%91%E9%94%99%E8%AF%AF%EF%BC%8C%E6%8F%90%E5%8D%87%E6%95%88%E7%8E%87"><span class="nav-text">消除可变容器：减少错误，提升效率</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%87%92%E6%B1%82%E5%80%BC%EF%BC%9A%E6%B6%88%E9%99%A4%E5%A4%9A%E4%BD%99%E6%93%8D%E4%BD%9C"><span class="nav-text">懒求值：消除多余操作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%A1%AC%E5%B8%81%E7%9A%84%E5%8F%8D%E9%9D%A2%EF%BC%9A%E6%80%A7%E8%83%BD%E4%B8%8E%E5%8F%AF%E8%AF%BB%E6%80%A7"><span class="nav-text">硬币的反面：性能与可读性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E7%9A%84%E6%80%A7%E8%83%BD%E9%97%AE%E9%A2%98"><span class="nav-text">函数式编程的性能问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E7%9A%84%E5%8F%AF%E8%AF%BB%E6%80%A7%E4%B8%8E%E5%8F%AF%E7%BB%B4%E6%8A%A4%E6%80%A7%E9%97%AE%E9%A2%98"><span class="nav-text">函数式编程的可读性与可维护性问题</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%BF%9B%E4%B8%80%E6%AD%A5%E9%98%85%E8%AF%BB"><span class="nav-text">进一步阅读</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">solarqiang</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/solarqiang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;solarqiang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zhiqiang.sol@foxmail.com" title="E-Mail → mailto:zhiqiang.sol@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">solarqiang</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              leancloudSelector(url).innerText = 'Counter not initialized! More info at console err msg.';
+              console.error('ATTENTION! LeanCloud counter has security bug, see how to solve it here: https://github.com/theme-next/hexo-leancloud-counter-security. \n However, you can still use LeanCloud without security, by setting `security` option to `false`.');
+            
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"bbnDMngYAJzVwwnYmQY3Rpm4-MdYXbMMI","app_key":"19WWCYLnVoXolUN0qqs73zX1","security":true,"betterPerformance":true};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : 'f7b603007e72448a85b0',
+      clientSecret: 'a8354c5d4cc087aef62a729d4c69750b38cd2ad4',
+      repo        : 'solarqiang.github.io',
+      owner       : 'solarqiang',
+      admin       : ['solarqiang'],
+      id          : '3351ce56584245cee75299c9e894ac98',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
